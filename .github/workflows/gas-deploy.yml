@@ -1,0 +1,130 @@
+name: GAS Auto Deploy
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - 'gas-version/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'gas-version/**'
+
+jobs:
+  deploy-gas:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: gas-version/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./gas-version
+      run: npm ci
+    
+    - name: Install clasp globally
+      run: npm install -g @google/clasp
+    
+    - name: Create clasp credentials
+      working-directory: ./gas-version
+      run: |
+        echo '${{ secrets.CLASP_CREDENTIALS }}' > ~/.clasprc.json
+        
+    - name: Set script ID for environment
+      working-directory: ./gas-version
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          echo '{"scriptId":"${{ secrets.GAS_SCRIPT_ID_PROD }}","rootDir":"./src"}' > .clasp.json
+        else
+          echo '{"scriptId":"${{ secrets.GAS_SCRIPT_ID_DEV }}","rootDir":"./src"}' > .clasp.json
+        fi
+    
+    - name: Push to Google Apps Script
+      working-directory: ./gas-version
+      run: clasp push --force
+    
+    - name: Deploy to GAS Web App
+      working-directory: ./gas-version
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          # 本番環境デプロイ
+          clasp deploy --description "Production deployment from commit ${{ github.sha }}"
+        else
+          # 開発環境デプロイ
+          clasp deploy --description "Development deployment from commit ${{ github.sha }}"
+        fi
+    
+    - name: Get deployment info
+      working-directory: ./gas-version
+      run: |
+        echo "🚀 GAS Deployment successful!"
+        echo "📋 Recent deployments:"
+        clasp deployments
+    
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ GAS deployment successful for ${{ github.ref }}"
+        else
+          echo "❌ GAS deployment failed for ${{ github.ref }}"
+        fi
+
+  test-gas:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: gas-version/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./gas-version
+      run: npm ci
+    
+    - name: Lint JavaScript files
+      working-directory: ./gas-version
+      run: |
+        # JSファイルの基本的な構文チェック
+        for file in src/*.js; do
+          if [ -f "$file" ]; then
+            echo "Checking $file..."
+            node -c "$file"
+          fi
+        done
+    
+    - name: Validate HTML files
+      working-directory: ./gas-version
+      run: |
+        # HTMLファイルの基本的な構文チェック
+        for file in src/*.html; do
+          if [ -f "$file" ]; then
+            echo "Checking $file..."
+            # 基本的なHTMLタグのチェック
+            if ! grep -q "<html" "$file"; then
+              echo "Warning: $file may not be a valid HTML file"
+            fi
+          fi
+        done
+    
+    - name: Validate appsscript.json
+      working-directory: ./gas-version
+      run: |
+        # appsscript.jsonの構文チェック
+        if [ -f "src/appsscript.json" ]; then
+          echo "Validating appsscript.json..."
+          cat src/appsscript.json | jq . > /dev/null
+        fi

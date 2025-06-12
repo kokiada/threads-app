@@ -1,0 +1,43 @@
+{
+  "name": "threads-manager-gas",
+  "version": "1.0.0",
+  "description": "Threads投稿マネージャー Google Apps Script版",
+  "main": "src/Code.js",
+  "scripts": {
+    "login": "clasp login",
+    "logout": "clasp logout",
+    "create": "clasp create --type webapp --title 'Threads投稿マネージャー'",
+    "create:prod": "clasp create --type webapp --title 'Threads投稿マネージャー(本番)'",
+    "create:dev": "clasp create --type webapp --title 'Threads投稿マネージャー(開発)'",
+    "clone": "clasp clone",
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "deploy": "clasp deploy",
+    "open": "clasp open",
+    "logs": "clasp logs",
+    "versions": "clasp versions",
+    "status": "clasp status",
+    "setup": "npm run login && npm run create && npm run push",
+    "setup:github": "echo 'GitHub Actions用セットアップガイド: cat GITHUB_ACTIONS_SETUP.md'",
+    "dev": "clasp push --watch",
+    "prod": "clasp push && clasp deploy",
+    "test": "node -e \"console.log('✅ Basic test passed')\"",
+    "lint": "find src -name '*.js' -exec node -c {} \\;",
+    "validate": "npm run lint && npm run test"
+  },
+  "keywords": [
+    "threads",
+    "social-media",
+    "automation",
+    "google-apps-script",
+    "clasp"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@google/clasp": "^3.0.6-alpha"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threads 投稿マネージャー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .stats .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stats .label {
+            color: #666;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .account-list, .post-list {
+            list-style: none;
+        }
+
+        .account-item, .post-item {
+            background: #f8f9fa;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .account-item:hover, .post-item:hover {
+            background: #e9ecef;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.published {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 20px;
+            }
+
+            .fab {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Threads 投稿マネージャー</h1>
+            <p>複数アカウント対応の自動投稿システム</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>アカウント概要</h3>
+                <div class="stats">
+                    <div>
+                        <div class="number" id="activeAccounts">-</div>
+                        <div class="label">アクティブアカウント</div>
+                    </div>
+                    <div>
+                        <div class="number" id="expiredAccounts">-</div>
+                        <div class="label">期限切れアカウント</div>
+                    </div>
+                </div>
+                <button class="button" onclick="openAccountModal()">アカウント管理</button>
+            </div>
+
+            <div class="card">
+                <h3>スケジュール投稿</h3>
+                <div class="stats">
+                    <div>
+                        <div class="number" id="scheduledPosts">-</div>
+                        <div class="label">予定投稿</div>
+                    </div>
+                </div>
+                <button class="button secondary" onclick="openScheduleModal()">スケジュール確認</button>
+            </div>
+
+            <div class="card">
+                <h3>最近の投稿</h3>
+                <div class="stats">
+                    <div>
+                        <div class="number" id="recentPosts">-</div>
+                        <div class="label">今日の投稿</div>
+                    </div>
+                </div>
+                <button class="button success" onclick="openHistoryModal()">投稿履歴</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新規投稿FAB -->
+    <button class="fab" onclick="openPostModal()" title="新規投稿作成">+</button>
+
+    <!-- 投稿作成モーダル -->
+    <div id="postModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('postModal')">&times;</span>
+            <h2>新規投稿作成</h2>
+            <form id="postForm">
+                <div class="form-group">
+                    <label for="postAccount">投稿アカウント</label>
+                    <select id="postAccount" required>
+                        <option value="">アカウントを選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="postType">投稿タイプ</label>
+                    <select id="postType" onchange="handlePostTypeChange()">
+                        <option value="TEXT">テキスト</option>
+                        <option value="IMAGE">画像</option>
+                        <option value="VIDEO">動画</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="postText">投稿内容</label>
+                    <textarea id="postText" placeholder="投稿内容を入力してください（最大500文字）" maxlength="500"></textarea>
+                </div>
+                <div class="form-group" id="mediaUrlGroup" style="display: none;">
+                    <label for="mediaUrl">メディアURL</label>
+                    <input type="url" id="mediaUrl" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="replyControl">リプライ制御</label>
+                    <select id="replyControl">
+                        <option value="everyone">全員</option>
+                        <option value="accounts_you_follow">フォロー中のアカウントのみ</option>
+                        <option value="mentioned_only">メンションされたアカウントのみ</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="scheduleType">投稿タイミング</label>
+                    <select id="scheduleType" onchange="handleScheduleTypeChange()">
+                        <option value="now">今すぐ投稿</option>
+                        <option value="schedule">スケジュール投稿</option>
+                    </select>
+                </div>
+                <div class="form-group" id="scheduleTimeGroup" style="display: none;">
+                    <label for="scheduleTime">投稿予定日時</label>
+                    <input type="datetime-local" id="scheduleTime">
+                </div>
+                <div style="text-align: right; margin-top: 30px;">
+                    <button type="button" class="button" onclick="closeModal('postModal')">キャンセル</button>
+                    <button type="submit" class="button success">投稿</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- アカウント管理モーダル -->
+    <div id="accountModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('accountModal')">&times;</span>
+            <h2>アカウント管理</h2>
+            <div style="margin-bottom: 20px;">
+                <button class="button" onclick="openAddAccountModal()">新しいアカウントを追加</button>
+            </div>
+            <div id="accountList">
+                <div class="loading">アカウント情報を読み込み中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- アカウント追加モーダル -->
+    <div id="addAccountModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addAccountModal')">&times;</span>
+            <h2>新しいアカウントを追加</h2>
+            <form id="accountForm">
+                <div class="form-group">
+                    <label for="accountName">アカウント名</label>
+                    <input type="text" id="accountName" required placeholder="表示用のアカウント名">
+                </div>
+                <div class="form-group">
+                    <label for="accountUsername">ユーザー名</label>
+                    <input type="text" id="accountUsername" required placeholder="@username">
+                </div>
+                <div class="form-group">
+                    <label for="accessToken">アクセストークン</label>
+                    <input type="password" id="accessToken" required placeholder="Threads APIアクセストークン">
+                </div>
+                <div style="text-align: right; margin-top: 30px;">
+                    <button type="button" class="button" onclick="closeModal('addAccountModal')">キャンセル</button>
+                    <button type="submit" class="button success">追加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- スケジュール確認モーダル -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('scheduleModal')">&times;</span>
+            <h2>スケジュール投稿</h2>
+            <div id="scheduleList">
+                <div class="loading">スケジュール情報を読み込み中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 投稿履歴モーダル -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('historyModal')">&times;</span>
+            <h2>投稿履歴</h2>
+            <div id="historyList">
+                <div class="loading">投稿履歴を読み込み中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let accounts = [];
+        let scheduledPosts = [];
+        let postHistory = [];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+        });
+
+        // ダッシュボードデータの読み込み
+        async function loadDashboardData() {
+            try {
+                await loadAccounts();
+                await loadScheduledPosts();
+                await loadPostHistory();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('ダッシュボードデータの読み込みエラー:', error);
+            }
+        }
+
+        // アカウント情報の読み込み
+        async function loadAccounts() {
+            try {
+                const response = await fetch('', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=getAccounts'
+                });
+                const data = await response.json();
+                accounts = data.error ? [] : data;
+                updateAccountSelect();
+            } catch (error) {
+                console.error('アカウント読み込みエラー:', error);
+                accounts = [];
+            }
+        }
+
+        // スケジュール投稿の読み込み
+        async function loadScheduledPosts() {
+            try {
+                const response = await fetch('', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=getScheduledPosts'
+                });
+                const data = await response.json();
+                scheduledPosts = data.error ? [] : data;
+            } catch (error) {
+                console.error('スケジュール投稿読み込みエラー:', error);
+                scheduledPosts = [];
+            }
+        }
+
+        // 投稿履歴の読み込み
+        async function loadPostHistory() {
+            try {
+                const response = await fetch('', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=getPostHistory'
+                });
+                const data = await response.json();
+                postHistory = data.error ? [] : data;
+            } catch (error) {
+                console.error('投稿履歴読み込みエラー:', error);
+                postHistory = [];
+            }
+        }
+
+        // ダッシュボード統計の更新
+        function updateDashboardStats() {
+            const activeAccounts = accounts.filter(acc => acc.status === 'active').length;
+            const expiredAccounts = accounts.filter(acc => acc.status === 'expired').length;
+            const pendingScheduled = scheduledPosts.filter(post => post.status === 'pending').length;
+            
+            const today = new Date().toDateString();
+            const todayPosts = postHistory.filter(post => 
+                new Date(post.publishedAt).toDateString() === today
+            ).length;
+
+            document.getElementById('activeAccounts').textContent = activeAccounts;
+            document.getElementById('expiredAccounts').textContent = expiredAccounts;
+            document.getElementById('scheduledPosts').textContent = pendingScheduled;
+            document.getElementById('recentPosts').textContent = todayPosts;
+        }
+
+        // アカウント選択肢の更新
+        function updateAccountSelect() {
+            const select = document.getElementById('postAccount');
+            select.innerHTML = '<option value="">アカウントを選択してください</option>';
+            
+            accounts.filter(acc => acc.status === 'active').forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = account.name;
+                select.appendChild(option);
+            });
+        }
+
+        // モーダル操作
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function openPostModal() {
+            updateAccountSelect();
+            openModal('postModal');
+        }
+
+        function openAccountModal() {
+            loadAccountList();
+            openModal('accountModal');
+        }
+
+        function openAddAccountModal() {
+            openModal('addAccountModal');
+        }
+
+        function openScheduleModal() {
+            loadScheduleList();
+            openModal('scheduleModal');
+        }
+
+        function openHistoryModal() {
+            loadHistoryList();
+            openModal('historyModal');
+        }
+
+        // フォーム操作
+        function handlePostTypeChange() {
+            const postType = document.getElementById('postType').value;
+            const mediaUrlGroup = document.getElementById('mediaUrlGroup');
+            const mediaUrlInput = document.getElementById('mediaUrl');
+            
+            if (postType === 'IMAGE' || postType === 'VIDEO') {
+                mediaUrlGroup.style.display = 'block';
+                mediaUrlInput.required = true;
+                mediaUrlInput.placeholder = postType === 'IMAGE' ? 
+                    'https://example.com/image.jpg' : 
+                    'https://example.com/video.mp4';
+            } else {
+                mediaUrlGroup.style.display = 'none';
+                mediaUrlInput.required = false;
+            }
+        }
+
+        function handleScheduleTypeChange() {
+            const scheduleType = document.getElementById('scheduleType').value;
+            const scheduleTimeGroup = document.getElementById('scheduleTimeGroup');
+            
+            if (scheduleType === 'schedule') {
+                scheduleTimeGroup.style.display = 'block';
+                document.getElementById('scheduleTime').required = true;
+                
+                // 現在時刻より1時間後をデフォルト値として設定
+                const now = new Date();
+                now.setHours(now.getHours() + 1);
+                document.getElementById('scheduleTime').value = now.toISOString().slice(0, 16);
+            } else {
+                scheduleTimeGroup.style.display = 'none';
+                document.getElementById('scheduleTime').required = false;
+            }
+        }
+
+        // 投稿フォームの送信
+        document.getElementById('postForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                accountId: document.getElementById('postAccount').value,
+                mediaType: document.getElementById('postType').value,
+                text: document.getElementById('postText').value,
+                replyControl: document.getElementById('replyControl').value
+            };
+
+            const scheduleType = document.getElementById('scheduleType').value;
+            
+            if (formData.mediaType === 'IMAGE') {
+                formData.imageUrl = document.getElementById('mediaUrl').value;
+            } else if (formData.mediaType === 'VIDEO') {
+                formData.videoUrl = document.getElementById('mediaUrl').value;
+            }
+
+            try {
+                let response;
+                if (scheduleType === 'now') {
+                    // 即座に投稿
+                    response = await fetch('', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=createPost&data=${encodeURIComponent(JSON.stringify(formData))}`
+                    });
+                } else {
+                    // スケジュール投稿
+                    const account = accounts.find(acc => acc.id === formData.accountId);
+                    const scheduleData = {
+                        accountId: formData.accountId,
+                        accountName: account.name,
+                        content: formData,
+                        scheduledTime: new Date(document.getElementById('scheduleTime').value).toISOString()
+                    };
+                    
+                    response = await fetch('', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=schedulePost&data=${encodeURIComponent(JSON.stringify(scheduleData))}`
+                    });
+                }
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                alert(scheduleType === 'now' ? '投稿が完了しました！' : 'スケジュール投稿が設定されました！');
+                closeModal('postModal');
+                document.getElementById('postForm').reset();
+                loadDashboardData();
+                
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+            }
+        });
+
+        // アカウント追加フォームの送信
+        document.getElementById('accountForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const accountData = {
+                name: document.getElementById('accountName').value,
+                username: document.getElementById('accountUsername').value,
+                accessToken: document.getElementById('accessToken').value,
+                tokenExpiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString() // 60日後
+            };
+
+            try {
+                const response = await fetch('', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=addAccount&data=${encodeURIComponent(JSON.stringify(accountData))}`
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                alert('アカウントが追加されました！');
+                closeModal('addAccountModal');
+                document.getElementById('accountForm').reset();
+                loadAccounts();
+                updateDashboardStats();
+                
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+            }
+        });
+
+        // アカウント一覧の表示
+        function loadAccountList() {
+            const accountList = document.getElementById('accountList');
+            
+            if (accounts.length === 0) {
+                accountList.innerHTML = '<p>登録されているアカウントはありません。</p>';
+                return;
+            }
+
+            const listHtml = accounts.map(account => `
+                <div class="account-item">
+                    <div>
+                        <strong>${account.name}</strong><br>
+                        <small>@${account.username}</small>
+                    </div>
+                    <span class="status ${account.status}">${account.status === 'active' ? 'アクティブ' : '期限切れ'}</span>
+                </div>
+            `).join('');
+
+            accountList.innerHTML = listHtml;
+        }
+
+        // スケジュール一覧の表示
+        function loadScheduleList() {
+            const scheduleList = document.getElementById('scheduleList');
+            
+            if (scheduledPosts.length === 0) {
+                scheduleList.innerHTML = '<p>スケジュール投稿はありません。</p>';
+                return;
+            }
+
+            const listHtml = scheduledPosts.map(post => `
+                <div class="post-item">
+                    <div>
+                        <strong>${post.accountName}</strong><br>
+                        <small>${new Date(post.scheduledTime).toLocaleString('ja-JP')}</small><br>
+                        <small>${post.content.text ? post.content.text.substring(0, 50) + '...' : post.content.mediaType + ' 投稿'}</small>
+                    </div>
+                    <span class="status ${post.status}">
+                        ${post.status === 'pending' ? '待機中' : 
+                          post.status === 'published' ? '投稿済み' : '失敗'}
+                    </span>
+                </div>
+            `).join('');
+
+            scheduleList.innerHTML = listHtml;
+        }
+
+        // 投稿履歴の表示
+        function loadHistoryList() {
+            const historyList = document.getElementById('historyList');
+            
+            if (postHistory.length === 0) {
+                historyList.innerHTML = '<p>投稿履歴はありません。</p>';
+                return;
+            }
+
+            const listHtml = postHistory.slice(0, 20).map(post => `
+                <div class="post-item">
+                    <div>
+                        <strong>${post.accountName}</strong><br>
+                        <small>${new Date(post.publishedAt).toLocaleString('ja-JP')}</small><br>
+                        <small>${post.content.text ? post.content.text.substring(0, 50) + '...' : post.content.mediaType + ' 投稿'}</small>
+                    </div>
+                    <span class="status ${post.status}">
+                        ${post.status === 'published' ? '投稿済み' : '失敗'}
+                    </span>
+                </div>
+            `).join('');
+
+            historyList.innerHTML = listHtml;
+        }
+
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
