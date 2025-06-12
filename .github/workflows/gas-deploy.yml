@@ -65,36 +65,9 @@ jobs:
           echo "🧪 Using DEVELOPMENT GAS project"
         fi
         
-    - name: Debug .clasp.json content
-      working-directory: ./gas-version
-      run: |
-        echo "🔍 Debug information:"
-        echo "Current working directory: $(pwd)"
-        echo "PWD variable: $PWD"
-        echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-        echo "📋 Current .clasp.json content:"
-        cat .clasp.json
-        echo "📁 Files in gas-version directory:"
-        ls -la
-        echo "📁 Files in src directory:"
-        ls -la src/
-        echo "🔍 Testing clasp project file paths:"
-        echo "Testing: .clasp.json"
-        test -f .clasp.json && echo "✅ .clasp.json exists" || echo "❌ .clasp.json not found"
-        echo "Testing: $PWD/.clasp.json"
-        test -f "$PWD/.clasp.json" && echo "✅ \$PWD/.clasp.json exists" || echo "❌ \$PWD/.clasp.json not found"
-        echo "Testing: $(pwd)/.clasp.json"
-        test -f "$(pwd)/.clasp.json" && echo "✅ \$(pwd)/.clasp.json exists" || echo "❌ \$(pwd)/.clasp.json not found"
-    
     - name: Push to Google Apps Script
       working-directory: ./gas-version
-      run: |
-        echo "🔍 Final check before clasp push:"
-        pwd
-        ls -la .clasp.json
-        cat .clasp.json
-        echo "🚀 Running clasp push..."
-        clasp push --force
+      run: clasp push --force
     
     - name: Deploy to GAS Web App
       working-directory: ./gas-version
