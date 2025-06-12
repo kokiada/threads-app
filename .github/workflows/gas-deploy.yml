@@ -2,7 +2,7 @@ name: GAS Auto Deploy
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths: 
       - 'gas-version/**'
   pull_request:
@@ -13,7 +13,7 @@ on:
 jobs:
   deploy-gas:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Checkout code
@@ -36,16 +36,28 @@ jobs:
     - name: Create clasp credentials
       working-directory: ./gas-version
       run: |
-        echo '${{ secrets.CLASP_CREDENTIALS }}' > ~/.clasprc.json
+        cat > ~/.clasprc.json << 'EOF'
+        {
+          "token": {
+            "access_token": "${{ secrets.ACCESS_TOKEN }}",
+            "refresh_token": "${{ secrets.REFRESH_TOKEN }}",
+            "id_token": "${{ secrets.ID_TOKEN }}",
+            "scope": "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/drive.file",
+            "token_type": "Bearer"
+          },
+          "oauth2ClientSettings": {
+            "clientId": "${{ secrets.CLIENTID }}",
+            "clientSecret": "${{ secrets.CLIENTSECRET }}",
+            "redirectUri": "http://localhost"
+          },
+          "isLocalCreds": false
+        }
+        EOF
         
-    - name: Set script ID for environment
+    - name: Set script ID for production (main branch only)
       working-directory: ./gas-version
       run: |
-        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          echo '{"scriptId":"${{ secrets.GAS_SCRIPT_ID_PROD }}","rootDir":"./src"}' > .clasp.json
-        else
-          echo '{"scriptId":"${{ secrets.GAS_SCRIPT_ID_DEV }}","rootDir":"./src"}' > .clasp.json
-        fi
+        echo '{"scriptId":"${{ secrets.GAS_SCRIPT_ID }}","rootDir":"./src"}' > .clasp.json
     
     - name: Push to Google Apps Script
       working-directory: ./gas-version
@@ -54,13 +66,7 @@ jobs:
     - name: Deploy to GAS Web App
       working-directory: ./gas-version
       run: |
-        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          # 本番環境デプロイ
-          clasp deploy --description "Production deployment from commit ${{ github.sha }}"
-        else
-          # 開発環境デプロイ
-          clasp deploy --description "Development deployment from commit ${{ github.sha }}"
-        fi
+        clasp deploy --description "Production deployment from commit ${{ github.sha }}"
     
     - name: Get deployment info
       working-directory: ./gas-version
