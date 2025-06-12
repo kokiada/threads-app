@@ -88,15 +88,21 @@ jobs:
     
     - name: Push to Google Apps Script
       working-directory: ./gas-version
-      run: clasp --project "$(pwd)/.clasp.json" push --force
+      run: |
+        echo "🔍 Final check before clasp push:"
+        pwd
+        ls -la .clasp.json
+        cat .clasp.json
+        echo "🚀 Running clasp push..."
+        clasp push --force
     
     - name: Deploy to GAS Web App
       working-directory: ./gas-version
       run: |
         if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          clasp --project "$(pwd)/.clasp.json" deploy --description "🏭 Production deployment from commit ${{ github.sha }}"
+          clasp deploy --description "🏭 Production deployment from commit ${{ github.sha }}"
         else
-          clasp --project "$(pwd)/.clasp.json" deploy --description "🧪 Development deployment from commit ${{ github.sha }}"
+          clasp deploy --description "🧪 Development deployment from commit ${{ github.sha }}"
         fi
     
     - name: Get deployment info
@@ -104,7 +110,7 @@ jobs:
       run: |
         echo "🚀 GAS Deployment successful!"
         echo "📋 Recent deployments:"
-        clasp --project "$(pwd)/.clasp.json" deployments
+        clasp deployments
     
     - name: Notify deployment status
       if: always()
