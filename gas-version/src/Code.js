@@ -414,4 +414,4 @@ function setupTriggers() {
     .create();
   
   Logger.log('トリガーが設定されました');
-}
+}// Test comment for GitHub Actions trigger
