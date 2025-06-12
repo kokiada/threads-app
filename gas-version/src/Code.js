@@ -1,7 +1,7 @@
 /**
  * Threads 投稿マネージャー - Google Apps Script版
  * メイン処理ファイル
- * Updated: Test clasp without --project flag
+ * Updated: Test with GitHub Secrets configured
  */
 
 // グローバル設定
