@@ -415,3 +415,4 @@ function setupTriggers() {
   
   Logger.log('トリガーが設定されました');
 }// Test comment for GitHub Actions trigger
+// GitHub Actions test - Thu Jun 12 21:56:30 JST 2025
