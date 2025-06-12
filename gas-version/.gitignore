@@ -1,4 +1,4 @@
-# clasp関連
+# clasp関連（認証情報のみ除外、設定ファイルは含める）
 .clasprc.json
 
 # Node.js
