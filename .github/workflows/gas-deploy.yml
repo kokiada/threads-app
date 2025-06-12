@@ -64,6 +64,16 @@ jobs:
           echo '{"scriptId":"${{ secrets.GAS_SCRIPT_ID_DEV }}","rootDir":"./src"}' > .clasp.json
           echo "🧪 Using DEVELOPMENT GAS project"
         fi
+        
+    - name: Debug .clasp.json content
+      working-directory: ./gas-version
+      run: |
+        echo "📋 Current .clasp.json content:"
+        cat .clasp.json
+        echo "📁 Files in gas-version directory:"
+        ls -la
+        echo "📁 Files in src directory:"
+        ls -la src/
     
     - name: Push to Google Apps Script
       working-directory: ./gas-version
