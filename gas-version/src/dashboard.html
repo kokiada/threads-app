@@ -436,24 +436,38 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('addAccountModal')">&times;</span>
             <h2>新しいアカウントを追加</h2>
-            <form id="accountForm">
-                <div class="form-group">
-                    <label for="accountName">アカウント名</label>
-                    <input type="text" id="accountName" required placeholder="表示用のアカウント名">
-                </div>
-                <div class="form-group">
-                    <label for="accountUsername">ユーザー名</label>
-                    <input type="text" id="accountUsername" required placeholder="@username">
-                </div>
-                <div class="form-group">
-                    <label for="accessToken">アクセストークン</label>
-                    <input type="password" id="accessToken" required placeholder="Threads APIアクセストークン">
-                </div>
-                <div style="text-align: right; margin-top: 30px;">
-                    <button type="button" class="button" onclick="closeModal('addAccountModal')">キャンセル</button>
-                    <button type="submit" class="button success">追加</button>
-                </div>
-            </form>
+            
+            <!-- OAuth認証方式 -->
+            <div class="oauth-section" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-bottom: 15px; color: #495057;">📱 簡単認証（推奨）</h3>
+                <p style="margin-bottom: 15px; color: #666;">Threadsアカウントで直接ログインして認証</p>
+                <button type="button" class="button success" onclick="startOAuth()" style="width: 100%;">
+                    🔗 Threadsアカウントで認証
+                </button>
+            </div>
+            
+            <!-- 手動入力方式 -->
+            <div class="manual-section">
+                <h3 style="margin-bottom: 15px; color: #495057;">🔧 手動設定（上級者向け）</h3>
+                <form id="accountForm">
+                    <div class="form-group">
+                        <label for="accountName">アカウント名</label>
+                        <input type="text" id="accountName" placeholder="表示用のアカウント名">
+                    </div>
+                    <div class="form-group">
+                        <label for="accountUsername">ユーザー名</label>
+                        <input type="text" id="accountUsername" placeholder="@username">
+                    </div>
+                    <div class="form-group">
+                        <label for="accessToken">アクセストークン</label>
+                        <input type="password" id="accessToken" placeholder="Threads APIアクセストークン">
+                    </div>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button type="button" class="button" onclick="closeModal('addAccountModal')">キャンセル</button>
+                        <button type="submit" class="button">手動追加</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -505,14 +519,16 @@
         // アカウント情報の読み込み
         async function loadAccounts() {
             try {
-                const response = await fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'action=getAccounts'
+                const data = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getAccounts();
                 });
-                const data = await response.json();
-                accounts = data.error ? [] : data;
+                
+                accounts = Array.isArray(data) ? data : [];
                 updateAccountSelect();
+                console.log('アカウント読み込み成功:', accounts.length, '件');
             } catch (error) {
                 console.error('アカウント読み込みエラー:', error);
                 accounts = [];
@@ -522,13 +538,15 @@
         // スケジュール投稿の読み込み
         async function loadScheduledPosts() {
             try {
-                const response = await fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'action=getScheduledPosts'
+                const data = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getScheduledPosts();
                 });
-                const data = await response.json();
-                scheduledPosts = data.error ? [] : data;
+                
+                scheduledPosts = Array.isArray(data) ? data : [];
+                console.log('スケジュール投稿読み込み成功:', scheduledPosts.length, '件');
             } catch (error) {
                 console.error('スケジュール投稿読み込みエラー:', error);
                 scheduledPosts = [];
@@ -538,13 +556,15 @@
         // 投稿履歴の読み込み
         async function loadPostHistory() {
             try {
-                const response = await fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'action=getPostHistory'
+                const data = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getPostHistory();
                 });
-                const data = await response.json();
-                postHistory = data.error ? [] : data;
+                
+                postHistory = Array.isArray(data) ? data : [];
+                console.log('投稿履歴読み込み成功:', postHistory.length, '件');
             } catch (error) {
                 console.error('投稿履歴読み込みエラー:', error);
                 postHistory = [];
@@ -670,13 +690,14 @@
             }
 
             try {
-                let response;
+                let result;
                 if (scheduleType === 'now') {
                     // 即座に投稿
-                    response = await fetch('', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `action=createPost&data=${encodeURIComponent(JSON.stringify(formData))}`
+                    result = await new Promise((resolve, reject) => {
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(reject)
+                            .createPost(formData);
                     });
                 } else {
                     // スケジュール投稿
@@ -688,14 +709,13 @@
                         scheduledTime: new Date(document.getElementById('scheduleTime').value).toISOString()
                     };
                     
-                    response = await fetch('', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `action=schedulePost&data=${encodeURIComponent(JSON.stringify(scheduleData))}`
+                    result = await new Promise((resolve, reject) => {
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(reject)
+                            .schedulePost(scheduleData);
                     });
                 }
-
-                const result = await response.json();
                 
                 if (result.error) {
                     throw new Error(result.error);
@@ -723,13 +743,12 @@
             };
 
             try {
-                const response = await fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=addAccount&data=${encodeURIComponent(JSON.stringify(accountData))}`
+                const result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .addAccount(accountData);
                 });
-
-                const result = await response.json();
                 
                 if (result.error) {
                     throw new Error(result.error);
@@ -745,6 +764,39 @@
                 alert('エラーが発生しました: ' + error.message);
             }
         });
+
+        // OAuth認証開始
+        async function startOAuth() {
+            try {
+                const authUrl = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .generateOAuthUrl();
+                });
+                
+                // ポップアップでOAuth認証画面を開く
+                const popup = window.open(
+                    authUrl, 
+                    'threads_oauth', 
+                    'width=600,height=700,scrollbars=yes,resizable=yes'
+                );
+                
+                // OAuth成功時のメッセージを受信
+                window.addEventListener('message', function(event) {
+                    if (event.data.type === 'oauth_success') {
+                        popup.close();
+                        alert('アカウントが追加されました！');
+                        closeModal('addAccountModal');
+                        loadAccounts();
+                        updateDashboardStats();
+                    }
+                });
+                
+            } catch (error) {
+                alert('OAuth認証の開始に失敗しました: ' + error.message);
+            }
+        }
 
         // アカウント一覧の表示
         function loadAccountList() {

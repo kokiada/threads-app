@@ -8,7 +8,7 @@ const CONFIG = {
   SPREADSHEET_ID: PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID'),
   THREADS_CLIENT_ID: PropertiesService.getScriptProperties().getProperty('THREADS_CLIENT_ID'),
   THREADS_CLIENT_SECRET: PropertiesService.getScriptProperties().getProperty('THREADS_CLIENT_SECRET'),
-  BASE_URL: 'https://script.google.com/macros/d/' + ScriptApp.getScriptId() + '/exec'
+  BASE_URL: ScriptApp.getService().getUrl()
 };
 
 /**
@@ -33,16 +33,155 @@ function doGet(e) {
 }
 
 /**
+ * Threads OAuth認証処理
+ */
+function handleThreadsAuth(e) {
+  const code = e.parameter.code;
+  const state = e.parameter.state;
+  const error = e.parameter.error;
+  
+  if (error) {
+    return HtmlService.createHtmlOutput(`
+      <h1>認証エラー</h1>
+      <p>エラー: ${error}</p>
+      <p>説明: ${e.parameter.error_description || ''}</p>
+      <button onclick="window.close()">閉じる</button>
+    `);
+  }
+  
+  if (!code) {
+    return HtmlService.createHtmlOutput(`
+      <h1>認証失敗</h1>
+      <p>認証コードが取得できませんでした。</p>
+      <button onclick="window.close()">閉じる</button>
+    `);
+  }
+  
+  try {
+    // アクセストークンを取得
+    const tokenData = exchangeCodeForToken(code);
+    
+    // ユーザー情報を取得
+    const userInfo = getThreadsUserInfo(tokenData.access_token);
+    
+    // アカウント情報を作成
+    const accountData = {
+      name: userInfo.name || userInfo.username,
+      username: userInfo.username,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token || '',
+      tokenExpiry: new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString(),
+      avatar: ''
+    };
+    
+    // アカウントを追加
+    const result = addAccount(accountData);
+    
+    return HtmlService.createHtmlOutput(`
+      <h1>認証成功</h1>
+      <p>アカウント「${accountData.name}」が追加されました！</p>
+      <script>
+        window.opener.postMessage({type: 'oauth_success', account: ${JSON.stringify(result)}}, '*');
+        window.close();
+      </script>
+    `);
+    
+  } catch (error) {
+    Logger.log('OAuth認証エラー: ' + error.toString());
+    return HtmlService.createHtmlOutput(`
+      <h1>認証処理エラー</h1>
+      <p>エラー: ${error.message}</p>
+      <button onclick="window.close()">閉じる</button>
+    `);
+  }
+}
+
+/**
+ * 認証コードをアクセストークンに交換
+ */
+function exchangeCodeForToken(code) {
+  const redirectUri = CONFIG.BASE_URL + '?page=auth';
+  
+  const response = UrlFetchApp.fetch('https://graph.threads.net/oauth/access_token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    payload: {
+      'client_id': CONFIG.THREADS_CLIENT_ID,
+      'client_secret': CONFIG.THREADS_CLIENT_SECRET,
+      'grant_type': 'authorization_code',
+      'redirect_uri': redirectUri,
+      'code': code
+    }
+  });
+  
+  const responseData = JSON.parse(response.getContentText());
+  
+  if (response.getResponseCode() !== 200) {
+    throw new Error('トークン取得失敗: ' + responseData.error_description);
+  }
+  
+  return responseData;
+}
+
+/**
+ * Threadsユーザー情報を取得
+ */
+function getThreadsUserInfo(accessToken) {
+  const response = UrlFetchApp.fetch(
+    `https://graph.threads.net/v1.0/me?fields=id,username,name&access_token=${accessToken}`
+  );
+  
+  const userData = JSON.parse(response.getContentText());
+  
+  if (response.getResponseCode() !== 200) {
+    throw new Error('ユーザー情報取得失敗: ' + userData.error.message);
+  }
+  
+  return userData;
+}
+
+/**
+ * OAuth認証URLを生成
+ */
+function generateOAuthUrl() {
+  const redirectUri = CONFIG.BASE_URL + '?page=auth';
+  
+  const scope = 'threads_basic,threads_content_publish';
+  const state = Utilities.getUuid();
+  
+  const authUrl = 'https://threads.net/oauth/authorize?' +
+    'client_id=' + encodeURIComponent(CONFIG.THREADS_CLIENT_ID) +
+    '&redirect_uri=' + encodeURIComponent(redirectUri) +
+    '&scope=' + encodeURIComponent(scope) +
+    '&response_type=code' +
+    '&state=' + encodeURIComponent(state);
+  
+  return authUrl;
+}
+
+/**
  * POST リクエストの処理
  */
 function doPost(e) {
+  Logger.log('doPost called with parameters: ' + JSON.stringify(e.parameter));
+  
   const action = e.parameter.action;
   
   try {
+    // 初期設定が完了していない場合は自動で設定
+    if (!CONFIG.SPREADSHEET_ID || CONFIG.SPREADSHEET_ID === '') {
+      const spreadsheetId = setupSpreadsheet();
+      CONFIG.SPREADSHEET_ID = spreadsheetId;
+    }
+    
     switch (action) {
       case 'getAccounts':
+        const accounts = getAccounts();
+        Logger.log('getAccounts result: ' + JSON.stringify(accounts));
         return ContentService
-          .createTextOutput(JSON.stringify(getAccounts()))
+          .createTextOutput(JSON.stringify(accounts))
           .setMimeType(ContentService.MimeType.JSON);
       
       case 'addAccount':
@@ -64,22 +203,27 @@ function doPost(e) {
           .setMimeType(ContentService.MimeType.JSON);
       
       case 'getScheduledPosts':
+        const scheduledPosts = getScheduledPosts();
+        Logger.log('getScheduledPosts result: ' + JSON.stringify(scheduledPosts));
         return ContentService
-          .createTextOutput(JSON.stringify(getScheduledPosts()))
+          .createTextOutput(JSON.stringify(scheduledPosts))
           .setMimeType(ContentService.MimeType.JSON);
       
       case 'getPostHistory':
+        const postHistory = getPostHistory();
+        Logger.log('getPostHistory result: ' + JSON.stringify(postHistory));
         return ContentService
-          .createTextOutput(JSON.stringify(getPostHistory()))
+          .createTextOutput(JSON.stringify(postHistory))
           .setMimeType(ContentService.MimeType.JSON);
       
       default:
         throw new Error('不明なアクション: ' + action);
     }
   } catch (error) {
-    Logger.log('エラー: ' + error.toString());
+    Logger.log('doPost エラー: ' + error.toString());
+    Logger.log('スタックトレース: ' + error.stack);
     return ContentService
-      .createTextOutput(JSON.stringify({ error: error.toString() }))
+      .createTextOutput(JSON.stringify({ error: error.toString(), stack: error.stack }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -95,20 +239,32 @@ function include(filename) {
  * アカウント管理
  */
 function getAccounts() {
-  const sheet = getSheet('accounts');
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const accounts = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const account = {};
-    headers.forEach((header, index) => {
-      account[header] = data[i][index];
-    });
-    accounts.push(account);
+  try {
+    const sheet = getSheet('accounts');
+    const dataRange = sheet.getDataRange();
+    
+    // シートが空の場合
+    if (dataRange.getNumRows() <= 1) {
+      return [];
+    }
+    
+    const data = dataRange.getValues();
+    const headers = data[0];
+    const accounts = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      const account = {};
+      headers.forEach((header, index) => {
+        account[header] = data[i][index];
+      });
+      accounts.push(account);
+    }
+    
+    return accounts;
+  } catch (error) {
+    Logger.log('getAccounts エラー: ' + error.toString());
+    return [];
   }
-  
-  return accounts;
 }
 
 function addAccount(accountData) {
@@ -236,60 +392,107 @@ function schedulePost(scheduleData) {
 }
 
 function getScheduledPosts() {
-  const sheet = getSheet('scheduled_posts');
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const posts = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const post = {};
-    headers.forEach((header, index) => {
-      if (header === 'content') {
-        post[header] = JSON.parse(data[i][index] || '{}');
-      } else {
-        post[header] = data[i][index];
-      }
-    });
-    posts.push(post);
+  try {
+    const sheet = getSheet('scheduled_posts');
+    const dataRange = sheet.getDataRange();
+    
+    // シートが空の場合
+    if (dataRange.getNumRows() <= 1) {
+      return [];
+    }
+    
+    const data = dataRange.getValues();
+    const headers = data[0];
+    const posts = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      const post = {};
+      headers.forEach((header, index) => {
+        if (header === 'content') {
+          try {
+            post[header] = JSON.parse(data[i][index] || '{}');
+          } catch (e) {
+            post[header] = {};
+          }
+        } else {
+          post[header] = data[i][index];
+        }
+      });
+      posts.push(post);
+    }
+    
+    return posts;
+  } catch (error) {
+    Logger.log('getScheduledPosts エラー: ' + error.toString());
+    return [];
   }
-  
-  return posts;
 }
 
 function getPostHistory() {
-  const sheet = getSheet('post_history');
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const posts = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const post = {};
-    headers.forEach((header, index) => {
-      if (header === 'content') {
-        post[header] = JSON.parse(data[i][index] || '{}');
-      } else {
-        post[header] = data[i][index];
-      }
-    });
-    posts.push(post);
+  try {
+    const sheet = getSheet('post_history');
+    const dataRange = sheet.getDataRange();
+    
+    // シートが空の場合
+    if (dataRange.getNumRows() <= 1) {
+      return [];
+    }
+    
+    const data = dataRange.getValues();
+    const headers = data[0];
+    const posts = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      const post = {};
+      headers.forEach((header, index) => {
+        if (header === 'content') {
+          try {
+            post[header] = JSON.parse(data[i][index] || '{}');
+          } catch (e) {
+            post[header] = {};
+          }
+        } else {
+          post[header] = data[i][index];
+        }
+      });
+      posts.push(post);
+    }
+    
+    return posts;
+  } catch (error) {
+    Logger.log('getPostHistory エラー: ' + error.toString());
+    return [];
   }
-  
-  return posts;
 }
 
 /**
  * ユーティリティ関数
  */
 function getSheet(sheetName) {
-  const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  let sheet = spreadsheet.getSheetByName(sheetName);
-  
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(sheetName);
-    initializeSheet(sheet, sheetName);
+  try {
+    // SPREADSHEET_IDが設定されていない場合は自動作成
+    if (!CONFIG.SPREADSHEET_ID || CONFIG.SPREADSHEET_ID === 'null' || CONFIG.SPREADSHEET_ID === '') {
+      Logger.log('SPREADSHEET_IDが設定されていません。新しいスプレッドシートを作成します。');
+      const spreadsheetId = setupSpreadsheet();
+      PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', spreadsheetId);
+      // CONFIGを更新
+      CONFIG.SPREADSHEET_ID = spreadsheetId;
+    }
+    
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    let sheet = spreadsheet.getSheetByName(sheetName);
+    
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(sheetName);
+      initializeSheet(sheet, sheetName);
+    }
+    
+    return sheet;
+  } catch (error) {
+    Logger.log('getSheet エラー: ' + error.toString());
+    Logger.log('SPREADSHEET_ID: ' + CONFIG.SPREADSHEET_ID);
+    throw new Error('スプレッドシートにアクセスできません: ' + error.toString());
   }
-  
-  return sheet;
 }
 
 function initializeSheet(sheet, sheetName) {
