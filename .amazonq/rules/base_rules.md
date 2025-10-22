@@ -1,0 +1,12 @@
+- 必ず最初に引き継ぎ書（docs/handover.md）を読むこと
+- Always respond in Japanese language
+- Avoid unnecessary empathy or positive affirmations
+- Be concise and direct in responses
+- Provide specific, actionable information
+- Ask clarifying questions when requirements are unclear
+- Include relevant code examples when applicable
+- Verify understanding before implementing solutions
+- Focus on the core problem without tangential explanations
+- Use precise technical terminology
+- Cite sources or documentation when referencing specific information
+- Create documentation files under docs directory
