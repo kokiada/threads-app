@@ -77,3 +77,9 @@ class PostGroupService:
         return db.query(Account).join(AccountGroup).filter(
             AccountGroup.group_id == group_id
         ).all()
+    
+    @staticmethod
+    def get_groups_by_account(db: Session, account_id: int) -> List[PostGroup]:
+        return db.query(PostGroup).join(AccountGroup).filter(
+            AccountGroup.account_id == account_id
+        ).all()
