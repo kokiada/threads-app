@@ -14,18 +14,32 @@ class AuthState(rx.State):
     
     def generate_auth_url(self):
         """認証URLを生成"""
-        app_id = os.getenv("THREADS_APP_ID")
-        base_url = os.getenv("BASE_URL", "http://localhost:3000")
-        redirect_uri = f"{base_url}/auth/callback"
-        scope = "threads_basic,threads_content_publish,threads_manage_insights,threads_manage_replies,threads_read_replies"
-        
-        self.auth_url = (
-            f"https://threads.net/oauth/authorize?"
-            f"client_id={app_id}&"
-            f"redirect_uri={redirect_uri}&"
-            f"scope={scope}&"
-            f"response_type=code"
-        )
+        try:
+            app_id = os.getenv("THREADS_APP_ID")
+            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            
+            if not app_id:
+                self.error_message = "THREADS_APP_IDが設定されていません"
+                return
+            
+            # http://の場合は警告を表示
+            if base_url.startswith("http://"):
+                self.error_message = "警告: HTTPでは認証できません。HTTPS環境（Renderなど）で実行してください。"
+                self.auth_url = ""
+                return
+            
+            redirect_uri = f"{base_url}/auth/callback"
+            scope = "threads_basic,threads_content_publish,threads_manage_insights,threads_manage_replies,threads_read_replies"
+            
+            self.auth_url = (
+                f"https://threads.net/oauth/authorize?"
+                f"client_id={app_id}&"
+                f"redirect_uri={redirect_uri}&"
+                f"scope={scope}&"
+                f"response_type=code"
+            )
+        except Exception as e:
+            self.error_message = f"URL生成エラー: {str(e)}"
     
     def set_auth_code(self, code: str):
         """認証コードを設定"""
