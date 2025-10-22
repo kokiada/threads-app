@@ -14,9 +14,9 @@ COPY . .
 
 RUN reflex init
 
-COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 EXPOSE 8000
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["/start.sh"]
