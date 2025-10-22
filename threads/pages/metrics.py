@@ -40,7 +40,7 @@ def metrics_page() -> rx.Component:
                     rx.vstack(
                         rx.heading("アカウント別メトリクス", size="6"),
                         rx.select(
-                            MetricsState.accounts.map(lambda a: a["name"]),
+                            [a["name"] for a in MetricsState.accounts],
                             placeholder="アカウントを選択",
                             on_change=MetricsState.set_selected_account_id,
                         ),

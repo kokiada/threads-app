@@ -12,12 +12,12 @@ def manual_post_page() -> rx.Component:
                 rx.card(
                     rx.vstack(
                         rx.heading("アカウント選択", size="6"),
-                        rx.foreach(
-                            ManualPostState.accounts,
-                            lambda a: rx.checkbox(
+                        rx.vstack(
+                            *[rx.checkbox(
                                 a["name"],
-                                on_change=lambda: ManualPostState.toggle_account(a["id"]),
-                            ),
+                                on_change=lambda aid=a["id"]: ManualPostState.toggle_account(aid),
+                            ) for a in ManualPostState.accounts],
+                            spacing="2",
                         ),
                         spacing="2",
                     ),
@@ -66,12 +66,12 @@ def manual_post_page() -> rx.Component:
                         rx.card(
                             rx.vstack(
                                 rx.select(
-                                    ManualPostState.groups.map(lambda g: g["name"]),
+                                    [g["name"] for g in ManualPostState.groups],
                                     placeholder="グループを選択",
                                     on_change=ManualPostState.set_selected_group_id,
                                 ),
                                 rx.select(
-                                    ManualPostState.posts.map(lambda p: p["text"]),
+                                    [p["text"] for p in ManualPostState.posts],
                                     placeholder="投稿を選択",
                                     on_change=ManualPostState.set_selected_post_id,
                                 ),

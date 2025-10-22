@@ -13,7 +13,7 @@ def schedules_page() -> rx.Component:
                     rx.vstack(
                         rx.heading("新規スケジュール作成", size="6"),
                         rx.select(
-                            ScheduleState.accounts.map(lambda a: a["name"]),
+                            [a["name"] for a in ScheduleState.accounts],
                             placeholder="アカウントを選択",
                             on_change=ScheduleState.set_selected_account_id,
                         ),
@@ -79,20 +79,22 @@ def schedules_page() -> rx.Component:
                                         rx.badge(s["schedule_type"]),
                                         rx.badge("有効" if s["is_active"] else "無効", color_scheme="green" if s["is_active"] else "gray"),
                                     ),
-                                    rx.cond(
-                                        s["schedule_type"] == "FIXED",
-                                        rx.text(f"時刻: {', '.join(s['fixed_times']) if s['fixed_times'] else ''}"),
-                                        rx.text(f"ランダム: {s['random_start_time']} - {s['random_end_time']} ({s['random_count']}回)"),
+                                    rx.text(
+                                        rx.cond(
+                                            s["schedule_type"] == "FIXED",
+                                            f"時刻: {s.get('fixed_times', [])}",
+                                            f"ランダム: {s.get('random_start_time', '')} - {s.get('random_end_time', '')} ({s.get('random_count', 0)}回)",
+                                        )
                                     ),
                                     rx.hstack(
                                         rx.button(
                                             "有効/無効切替",
-                                            on_click=lambda: ScheduleState.toggle_schedule(s["id"]),
+                                            on_click=ScheduleState.toggle_schedule(s["id"]),
                                             size="2",
                                         ),
                                         rx.button(
                                             "削除",
-                                            on_click=lambda: ScheduleState.delete_schedule(s["id"]),
+                                            on_click=ScheduleState.delete_schedule(s["id"]),
                                             color_scheme="red",
                                             size="2",
                                         ),
