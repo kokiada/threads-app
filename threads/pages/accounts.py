@@ -7,7 +7,7 @@ def account_row(account: dict) -> rx.Component:
         rx.table.cell(account["name"]),
         rx.table.cell(account["threads_user_id"]),
         rx.table.cell(
-            rx.badge(account["status"], color_scheme="green" if account["status"] == "active" else "gray")
+            rx.badge(account["status"], color_scheme=rx.cond(account["status"] == "active", "green", "gray"))
         ),
         rx.table.cell(
             rx.hstack(

@@ -20,6 +20,21 @@ class PostState(BaseState):
     form_media_type: str = "TEXT"
     form_media_urls: str = ""
     
+    def set_form_group_name(self, value: str):
+        self.form_group_name = value
+    
+    def set_form_group_description(self, value: str):
+        self.form_group_description = value
+    
+    def set_form_post_text(self, value: str):
+        self.form_post_text = value
+    
+    def set_form_media_type(self, value: str):
+        self.form_media_type = value
+    
+    def set_form_media_urls(self, value: str):
+        self.form_media_urls = value
+    
     def load_groups(self):
         db = self.get_db()
         try:

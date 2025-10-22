@@ -15,6 +15,15 @@ class AccountState(BaseState):
     form_threads_user_id: str = ""
     form_access_token: str = ""
     
+    def set_form_name(self, value: str):
+        self.form_name = value
+    
+    def set_form_threads_user_id(self, value: str):
+        self.form_threads_user_id = value
+    
+    def set_form_access_token(self, value: str):
+        self.form_access_token = value
+    
     def load_accounts(self):
         db = self.get_db()
         try:
