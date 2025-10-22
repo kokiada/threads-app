@@ -51,13 +51,7 @@ def auth_page() -> rx.Component:
                     width="100%",
                 ),
                 
-                rx.cond(
-                    AuthState.error_message != "",
-                    rx.callout(
-                        AuthState.error_message,
-                        color_scheme="red",
-                    ),
-                ),
+
                 
                 rx.cond(
                     AuthState.success_message != "",
@@ -78,19 +72,33 @@ def auth_page() -> rx.Component:
                                     rx.text(AuthState.access_token[:20] + "..."),
                                 ),
                                 rx.divider(),
-                                rx.text("次のステップ:", weight="bold"),
-                                rx.text("1. /accounts ページに移動"),
-                                rx.text("2. 「アカウント追加」をクリック"),
-                                rx.text("3. 上記の User ID とアクセストークンを入力"),
-                                rx.button(
-                                    "アカウント管理ページへ",
-                                    on_click=rx.redirect("/accounts"),
+                                rx.heading("アカウント登録", size="5"),
+                                rx.text("アカウント名を入力して登録してください"),
+                                rx.input(
+                                    placeholder="アカウント名（例: マイアカウント）",
+                                    value=AuthState.account_name,
+                                    on_change=AuthState.set_account_name,
+                                    width="100%",
                                 ),
-                                spacing="2",
+                                rx.button(
+                                    "アカウントを登録",
+                                    on_click=AuthState.register_account,
+                                    size="3",
+                                    color_scheme="green",
+                                ),
+                                spacing="3",
                             ),
                             spacing="4",
                         ),
                         width="100%",
+                    ),
+                ),
+                
+                rx.cond(
+                    AuthState.error_message != "",
+                    rx.callout(
+                        AuthState.error_message,
+                        color_scheme="red",
                     ),
                 ),
                 
@@ -99,6 +107,7 @@ def auth_page() -> rx.Component:
                 align="start",
             ),
             margin_left="250px",
+            width="100%",
             on_mount=AuthState.generate_auth_url,
         ),
     )

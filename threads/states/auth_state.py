@@ -10,6 +10,7 @@ class AuthState(rx.State):
     user_id: str = ""
     error_message: str = ""
     success_message: str = ""
+    processing: bool = False
     
     def generate_auth_url(self):
         """認証URLを生成"""
@@ -28,6 +29,11 @@ class AuthState(rx.State):
     def set_auth_code(self, code: str):
         """認証コードを設定"""
         self.auth_code = code
+    
+    account_name: str = ""
+    
+    def set_account_name(self, name: str):
+        self.account_name = name
     
     def exchange_token(self):
         """認証コードをアクセストークンに交換"""
@@ -61,3 +67,44 @@ class AuthState(rx.State):
         except Exception as e:
             self.error_message = f"エラー: {str(e)}"
             self.success_message = ""
+    
+    def register_account(self):
+        """アカウントを登録"""
+        if not self.account_name or not self.user_id or not self.access_token:
+            self.error_message = "アカウント名、User ID、アクセストークンが必要です"
+            return
+        
+        from ..models.base import get_db
+        from ..services.account_service import AccountService
+        from datetime import datetime, timedelta
+        
+        db = next(get_db())
+        try:
+            AccountService.create_account(
+                db=db,
+                name=self.account_name,
+                threads_user_id=self.user_id,
+                access_token=self.access_token,
+                token_expires_at=datetime.now() + timedelta(days=60)
+            )
+            self.success_message = f"アカウント '{self.account_name}' を登録しました！"
+            return rx.redirect("/accounts")
+        except Exception as e:
+            self.error_message = f"登録エラー: {str(e)}"
+        finally:
+            db.close()
+    
+    def handle_callback(self):
+        """コールバックURLから認証コードを自動取得"""
+        # URLパラメータからcodeを取得
+        code = self.router.page.params.get("code", "")
+        if code:
+            # #_ を除去
+            code = code.split("#")[0]
+            self.auth_code = code
+            self.processing = True
+            # トークン交換を実行
+            self.exchange_token()
+            self.processing = False
+            # 認証ページにリダイレクト
+            return rx.redirect("/auth")
