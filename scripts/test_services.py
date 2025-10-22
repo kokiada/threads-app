@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """サービス層の動作確認テスト"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from threads.models.base import init_db, SessionLocal
 from threads.services import (
