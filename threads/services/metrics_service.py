@@ -29,22 +29,34 @@ class MetricsService:
         return metrics
     
     @staticmethod
-    def fetch_user_metrics(db: Session, account: Account, 
-                          since: Optional[int] = None, until: Optional[int] = None) -> Dict:
-        decrypted_token = AccountService.get_decrypted_token(account)
-        client = ThreadsAPIClient(decrypted_token)
-        
-        metrics = client.get_user_insights(account.threads_user_id, MetricsService.USER_METRICS, since, until)
-        
-        cache = MetricsCache(
-            account_id=account.id,
-            metric_type=MetricType.user,
-            metric_data=metrics
-        )
-        db.add(cache)
-        db.commit()
-        
-        return metrics
+    async def fetch_user_metrics(db: Session, account: Account, 
+                                since: Optional[datetime] = None, 
+                                until: Optional[datetime] = None) -> Dict:
+        try:
+            decrypted_token = AccountService.get_decrypted_token(account)
+            client = ThreadsAPIClient(decrypted_token)
+            
+            since_ts = int(since.timestamp()) if since else None
+            until_ts = int(until.timestamp()) if until else None
+            
+            metrics = client.get_user_insights(
+                account.threads_user_id, 
+                MetricsService.USER_METRICS, 
+                since_ts, 
+                until_ts
+            )
+            
+            cache = MetricsCache(
+                account_id=account.id,
+                metric_type=MetricType.user,
+                metric_data=metrics
+            )
+            db.add(cache)
+            db.commit()
+            
+            return {"success": True, "metrics": metrics}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     @staticmethod
     def get_cached_metrics(db: Session, account_id: int, 
@@ -93,11 +105,20 @@ class MetricsService:
         growth_data = []
         for account in accounts:
             growth = MetricsService.calculate_growth_rate(db, account.id, days)
+            
+            current = db.query(MetricsCache).filter(
+                MetricsCache.account_id == account.id,
+                MetricsCache.metric_type == MetricType.user
+            ).order_by(MetricsCache.fetched_at.desc()).first()
+            
+            current_followers = current.metric_data.get("followers_count", 0) if current else 0
+            
             growth_data.append({
                 "account_id": account.id,
                 "account_name": account.name,
                 "growth_rate": growth["growth_rate"],
-                "follower_change": growth["follower_change"]
+                "follower_change": growth["follower_change"],
+                "current_followers": current_followers
             })
         
         return sorted(growth_data, key=lambda x: x["growth_rate"], reverse=True)[:limit]

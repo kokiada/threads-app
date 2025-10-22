@@ -1,0 +1,118 @@
+import reflex as rx
+import asyncio
+from typing import List
+from ..models.post import MediaType
+from ..services.account_service import AccountService
+from ..services.post_group_service import PostGroupService
+from ..services.post_service import PostService
+from ..services.posting_service import PostingService
+from .base_state import BaseState
+
+class ManualPostState(BaseState):
+    accounts: List[dict] = []
+    groups: List[dict] = []
+    posts: List[dict] = []
+    selected_account_ids: List[int] = []
+    selected_group_id: int = 0
+    selected_post_id: int = 0
+    post_text: str = ""
+    media_type: str = "TEXT"
+    media_urls: str = ""
+    posting: bool = False
+    result_message: str = ""
+    
+    def load_accounts(self):
+        with self.get_db() as db:
+            accounts = AccountService.get_all_accounts(db)
+            self.accounts = [
+                {"id": a.id, "name": a.name, "status": a.status.value}
+                for a in accounts if a.status.value == "active"
+            ]
+    
+    def load_groups(self):
+        with self.get_db() as db:
+            groups = PostGroupService.get_all_groups(db)
+            self.groups = [{"id": g.id, "name": g.name} for g in groups]
+    
+    def load_posts(self):
+        if not self.selected_group_id:
+            return
+        with self.get_db() as db:
+            posts = PostService.get_posts_by_group(db, self.selected_group_id)
+            self.posts = [
+                {"id": p.id, "text": p.text[:50], "media_type": p.media_type.value}
+                for p in posts
+            ]
+    
+    def set_selected_group_id(self, value: str):
+        self.selected_group_id = int(value)
+        self.load_posts()
+    
+    def set_selected_post_id(self, value: str):
+        self.selected_post_id = int(value)
+    
+    def set_post_text(self, value: str):
+        self.post_text = value
+    
+    def set_media_type(self, value: str):
+        self.media_type = value
+    
+    def set_media_urls(self, value: str):
+        self.media_urls = value
+    
+    def toggle_account(self, account_id: int):
+        if account_id in self.selected_account_ids:
+            self.selected_account_ids.remove(account_id)
+        else:
+            self.selected_account_ids.append(account_id)
+    
+    async def post_manual(self):
+        if not self.selected_account_ids or not self.post_text:
+            self.result_message = "アカウントと投稿内容を選択してください"
+            return
+        
+        self.posting = True
+        self.result_message = ""
+        
+        with self.get_db() as db:
+            accounts = [AccountService.get_account(db, aid) for aid in self.selected_account_ids]
+            
+            media_type = MediaType[self.media_type]
+            urls = [u.strip() for u in self.media_urls.split(",") if u.strip()] if self.media_urls else None
+            
+            from ..models.post import Post
+            temp_post = Post(
+                group_id=1,
+                media_type=media_type,
+                text=self.post_text,
+                media_urls=urls
+            )
+            
+            results = await PostingService.post_bulk(db, accounts, temp_post)
+            success_count = sum(1 for r in results if r.get("success"))
+            self.result_message = f"投稿完了: {success_count}/{len(accounts)}件成功"
+        
+        self.posting = False
+    
+    async def post_from_template(self):
+        if not self.selected_account_ids or not self.selected_post_id:
+            self.result_message = "アカウントと投稿テンプレートを選択してください"
+            return
+        
+        self.posting = True
+        self.result_message = ""
+        
+        with self.get_db() as db:
+            accounts = [AccountService.get_account(db, aid) for aid in self.selected_account_ids]
+            post = PostService.get_post(db, self.selected_post_id)
+            
+            if not post:
+                self.result_message = "投稿が見つかりません"
+                self.posting = False
+                return
+            
+            results = await PostingService.post_bulk(db, accounts, post)
+            success_count = sum(1 for r in results if r.get("success"))
+            self.result_message = f"投稿完了: {success_count}/{len(accounts)}件成功"
+        
+        self.posting = False
