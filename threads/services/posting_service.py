@@ -8,10 +8,12 @@ from ..models.post_history import PostHistory, PostStatus
 from ..api.threads_client import ThreadsAPIClient
 from ..services.account_service import AccountService
 from ..utils.exceptions import ThreadsAPIError, RateLimitError
+from ..utils.logger import logger
 
 class PostingService:
     @staticmethod
     async def post_single(db: Session, account: Account, post: Post) -> Dict:
+        logger.info(f"Starting post for account {account.name} (ID: {account.id})")
         try:
             decrypted_token = AccountService.get_decrypted_token(account)
             client = ThreadsAPIClient(decrypted_token)
@@ -65,9 +67,11 @@ class PostingService:
             db.add(history)
             db.commit()
             
+            logger.info(f"Post successful for account {account.name}, media_id: {media_id}")
             return {"success": True, "media_id": media_id}
         
         except Exception as e:
+            logger.error(f"Post failed for account {account.name}: {str(e)}")
             history = PostHistory(
                 account_id=account.id,
                 post_id=post.id,

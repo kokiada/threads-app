@@ -13,6 +13,7 @@ from ..services.account_service import AccountService
 from ..services.posting_service import PostingService
 from ..services.token_service import TokenService
 from ..services.post_group_service import PostGroupService
+from ..utils.logger import logger
 import os
 
 # グローバルスケジューラーインスタンス
@@ -43,35 +44,42 @@ def get_scheduler() -> BackgroundScheduler:
 
 def execute_scheduled_post(account_id: int, schedule_id: int):
     """スケジュールされた投稿を実行"""
+    logger.info(f"Executing scheduled post for account_id={account_id}, schedule_id={schedule_id}")
     db = next(get_db())
     try:
         account = AccountService.get_account(db, account_id)
         if not account or account.status.value != "active":
+            logger.warning(f"Account {account_id} not found or inactive")
             return
         
         schedule = ScheduleService.get_schedule_by_account(db, account_id)
         if not schedule or not schedule.is_active:
+            logger.warning(f"Schedule for account {account_id} not found or inactive")
             return
         
-        # アカウントのグループを取得
         groups = PostGroupService.get_groups_by_account(db, account_id)
         if not groups:
+            logger.warning(f"No groups found for account {account_id}")
             return
         
-        # ランダムにグループを選択
         group = random.choice(groups)
+        logger.info(f"Selected group {group.name} for account {account.name}")
         
-        # 非同期投稿を実行
         asyncio.run(PostingService.post_random(db, account, group.id))
-    
+    except Exception as e:
+        logger.error(f"Error executing scheduled post: {str(e)}")
     finally:
         db.close()
 
 def token_refresh_job():
     """トークンリフレッシュジョブ（毎日実行）"""
+    logger.info("Starting token refresh job")
     db = next(get_db())
     try:
-        TokenService.refresh_expiring_tokens(db, days_before=7)
+        results = TokenService.refresh_expiring_tokens(db, days_before=7)
+        logger.info(f"Token refresh completed: {len(results)} accounts processed")
+    except Exception as e:
+        logger.error(f"Error in token refresh job: {str(e)}")
     finally:
         db.close()
 
@@ -155,10 +163,10 @@ def schedule_random_posts(account_id: int, schedule_id: int, count: int,
 
 def start_scheduler():
     """スケジューラーを開始"""
+    logger.info("Starting scheduler")
     scheduler = get_scheduler()
     
     if not scheduler.running:
-        # トークンリフレッシュジョブを追加（毎日午前3時）
         scheduler.add_job(
             token_refresh_job,
             'cron',
@@ -168,11 +176,11 @@ def start_scheduler():
             replace_existing=True
         )
         
-        # スケジュールを読み込み
         reload_schedules()
-        
-        # スケジューラー開始
         scheduler.start()
+        logger.info("Scheduler started successfully")
+    else:
+        logger.warning("Scheduler already running")
 
 def stop_scheduler():
     """スケジューラーを停止"""

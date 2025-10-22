@@ -2,6 +2,7 @@ import requests
 import time
 from typing import Dict, List, Optional
 from ..utils.exceptions import ThreadsAPIError, RateLimitError, TokenExpiredError
+from ..utils.logger import logger
 
 class ThreadsAPIClient:
     BASE_URL = "https://graph.threads.net/v1.0"
@@ -15,26 +16,33 @@ class ThreadsAPIClient:
         params = params or {}
         params["access_token"] = self.access_token
         
+        logger.info(f"API Request: {method} {endpoint}")
+        
         for attempt in range(retries):
             try:
                 response = self.session.request(method, url, params=params, json=data)
                 
                 if response.status_code == 429:
                     wait_time = 2 ** attempt
+                    logger.warning(f"Rate limit hit, waiting {wait_time}s")
                     time.sleep(wait_time)
                     continue
                 
                 if response.status_code == 401:
+                    logger.error("Access token expired")
                     raise TokenExpiredError("Access token expired")
                 
                 response.raise_for_status()
+                logger.info(f"API Request successful: {endpoint}")
                 return response.json()
             
             except requests.exceptions.HTTPError as e:
+                logger.error(f"API request failed (attempt {attempt + 1}/{retries}): {str(e)}")
                 if attempt == retries - 1:
                     raise ThreadsAPIError(f"API request failed: {str(e)}")
                 time.sleep(2 ** attempt)
         
+        logger.error("Max retries exceeded")
         raise ThreadsAPIError("Max retries exceeded")
     
     def create_media_container(self, user_id: str, media_type: str, text: str = None, 
