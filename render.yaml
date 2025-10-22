@@ -17,6 +17,8 @@ services:
         sync: false
       - key: REFLEX_ENV
         value: prod
+      - key: BASE_URL
+        sync: false
 
 databases:
   - name: threads-db
