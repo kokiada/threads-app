@@ -39,9 +39,14 @@ def metrics_page() -> rx.Component:
                 rx.card(
                     rx.vstack(
                         rx.heading("アカウント別メトリクス", size="6"),
-                        rx.select(
-                            [a["name"] for a in MetricsState.accounts],
-                            placeholder="アカウントを選択",
+                        rx.select.root(
+                            rx.select.trigger(placeholder="アカウントを選択"),
+                            rx.select.content(
+                                rx.foreach(
+                                    MetricsState.accounts,
+                                    lambda a: rx.select.item(a["name"], value=a["id"]),
+                                ),
+                            ),
                             on_change=MetricsState.set_selected_account_id,
                         ),
                         rx.button(

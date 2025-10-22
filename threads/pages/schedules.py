@@ -12,9 +12,14 @@ def schedules_page() -> rx.Component:
                 rx.card(
                     rx.vstack(
                         rx.heading("新規スケジュール作成", size="6"),
-                        rx.select(
-                            [a["name"] for a in ScheduleState.accounts],
-                            placeholder="アカウントを選択",
+                        rx.select.root(
+                            rx.select.trigger(placeholder="アカウントを選択"),
+                            rx.select.content(
+                                rx.foreach(
+                                    ScheduleState.accounts,
+                                    lambda a: rx.select.item(a["name"], value=a["id"]),
+                                ),
+                            ),
                             on_change=ScheduleState.set_selected_account_id,
                         ),
                         rx.select(
@@ -77,24 +82,26 @@ def schedules_page() -> rx.Component:
                                     rx.hstack(
                                         rx.text(s["account_name"], weight="bold"),
                                         rx.badge(s["schedule_type"]),
-                                        rx.badge("有効" if s["is_active"] else "無効", color_scheme="green" if s["is_active"] else "gray"),
-                                    ),
-                                    rx.text(
                                         rx.cond(
-                                            s["schedule_type"] == "FIXED",
-                                            f"時刻: {s.get('fixed_times', [])}",
-                                            f"ランダム: {s.get('random_start_time', '')} - {s.get('random_end_time', '')} ({s.get('random_count', 0)}回)",
-                                        )
+                                            s["is_active"],
+                                            rx.badge("有効", color_scheme="green"),
+                                            rx.badge("無効", color_scheme="gray"),
+                                        ),
+                                    ),
+                                    rx.cond(
+                                        s["schedule_type"] == "FIXED",
+                                        rx.hstack(rx.text("時刻:"), rx.text(s["fixed_times"])),
+                                        rx.hstack(rx.text(s["random_start_time"]), rx.text("-"), rx.text(s["random_end_time"])),
                                     ),
                                     rx.hstack(
                                         rx.button(
                                             "有効/無効切替",
-                                            on_click=ScheduleState.toggle_schedule(s["id"]),
+                                            on_click=lambda sid=s["id"]: ScheduleState.toggle_schedule(sid),
                                             size="2",
                                         ),
                                         rx.button(
                                             "削除",
-                                            on_click=ScheduleState.delete_schedule(s["id"]),
+                                            on_click=lambda sid=s["id"]: ScheduleState.delete_schedule(sid),
                                             color_scheme="red",
                                             size="2",
                                         ),

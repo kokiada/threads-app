@@ -12,12 +12,12 @@ def manual_post_page() -> rx.Component:
                 rx.card(
                     rx.vstack(
                         rx.heading("アカウント選択", size="6"),
-                        rx.vstack(
-                            *[rx.checkbox(
+                        rx.foreach(
+                            ManualPostState.accounts,
+                            lambda a: rx.checkbox(
                                 a["name"],
                                 on_change=lambda aid=a["id"]: ManualPostState.toggle_account(aid),
-                            ) for a in ManualPostState.accounts],
-                            spacing="2",
+                            ),
                         ),
                         spacing="2",
                     ),
@@ -65,14 +65,24 @@ def manual_post_page() -> rx.Component:
                     rx.tabs.content(
                         rx.card(
                             rx.vstack(
-                                rx.select(
-                                    [g["name"] for g in ManualPostState.groups],
-                                    placeholder="グループを選択",
+                                rx.select.root(
+                                    rx.select.trigger(placeholder="グループを選択"),
+                                    rx.select.content(
+                                        rx.foreach(
+                                            ManualPostState.groups,
+                                            lambda g: rx.select.item(g["name"], value=g["id"]),
+                                        ),
+                                    ),
                                     on_change=ManualPostState.set_selected_group_id,
                                 ),
-                                rx.select(
-                                    [p["text"] for p in ManualPostState.posts],
-                                    placeholder="投稿を選択",
+                                rx.select.root(
+                                    rx.select.trigger(placeholder="投稿を選択"),
+                                    rx.select.content(
+                                        rx.foreach(
+                                            ManualPostState.posts,
+                                            lambda p: rx.select.item(p["text"], value=p["id"]),
+                                        ),
+                                    ),
                                     on_change=ManualPostState.set_selected_post_id,
                                 ),
                                 rx.button(
