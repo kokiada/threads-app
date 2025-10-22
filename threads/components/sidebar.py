@@ -25,6 +25,8 @@ def sidebar() -> rx.Component:
             sidebar_item("スケジュール", "calendar", "/schedules"),
             sidebar_item("手動投稿", "send", "/manual-post"),
             sidebar_item("メトリクス", "bar-chart", "/metrics"),
+            rx.divider(),
+            sidebar_item("API認証", "key", "/auth"),
             spacing="2",
             align="stretch",
         ),

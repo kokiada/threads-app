@@ -6,6 +6,7 @@ from .pages import (
     schedules_page,
     manual_post_page,
     metrics_page,
+    auth_page,
 )
 from .scheduler import start_scheduler
 
@@ -16,6 +17,7 @@ app.add_page(posts_page, route="/posts")
 app.add_page(schedules_page, route="/schedules")
 app.add_page(manual_post_page, route="/manual-post")
 app.add_page(metrics_page, route="/metrics")
+app.add_page(auth_page, route="/auth")
 
 # スケジューラー起動
 start_scheduler()

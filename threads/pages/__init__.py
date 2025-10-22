@@ -4,6 +4,7 @@ from .posts import posts_page
 from .schedules import schedules_page
 from .manual_post import manual_post_page
 from .metrics import metrics_page
+from .auth import auth_page
 
 __all__ = [
     "dashboard_page",
@@ -12,4 +13,5 @@ __all__ = [
     "schedules_page",
     "manual_post_page",
     "metrics_page",
+    "auth_page",
 ]

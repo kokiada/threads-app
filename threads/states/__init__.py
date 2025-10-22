@@ -4,6 +4,7 @@ from .post_state import PostState
 from .schedule_state import ScheduleState
 from .manual_post_state import ManualPostState
 from .metrics_state import MetricsState
+from .auth_state import AuthState
 
 __all__ = [
     "BaseState",
@@ -12,4 +13,5 @@ __all__ = [
     "ScheduleState",
     "ManualPostState",
     "MetricsState",
+    "AuthState",
 ]
