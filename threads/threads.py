@@ -1,36 +1,17 @@
-"""Welcome to Reflex! This file outlines the steps to create a basic app."""
-
 import reflex as rx
-
-from rxconfig import config
-
-
-class State(rx.State):
-    """The app state."""
-
-
-def index() -> rx.Component:
-    # Welcome Page (Index)
-    return rx.container(
-        rx.color_mode.button(position="top-right"),
-        rx.vstack(
-            rx.heading("Welcome to Reflex!", size="9"),
-            rx.text(
-                "Get started by editing ",
-                rx.code(f"{config.app_name}/{config.app_name}.py"),
-                size="5",
-            ),
-            rx.link(
-                rx.button("Check out our docs!"),
-                href="https://reflex.dev/docs/getting-started/introduction/",
-                is_external=True,
-            ),
-            spacing="5",
-            justify="center",
-            min_height="85vh",
-        ),
-    )
-
+from .pages import (
+    dashboard_page,
+    accounts_page,
+    posts_page,
+    schedules_page,
+    manual_post_page,
+    metrics_page,
+)
 
 app = rx.App()
-app.add_page(index)
+app.add_page(dashboard_page, route="/")
+app.add_page(accounts_page, route="/accounts")
+app.add_page(posts_page, route="/posts")
+app.add_page(schedules_page, route="/schedules")
+app.add_page(manual_post_page, route="/manual-post")
+app.add_page(metrics_page, route="/metrics")
