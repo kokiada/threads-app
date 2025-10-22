@@ -94,8 +94,12 @@ def reload_schedules():
             if job.id.startswith("schedule_"):
                 job.remove()
         
-        # アクティブなスケジュールを取得
-        schedules = ScheduleService.get_active_schedules(db)
+        # アクティブなスケジュールを取得（テーブルが存在しない場合はスキップ）
+        try:
+            schedules = ScheduleService.get_active_schedules(db)
+        except Exception as e:
+            logger.warning(f"Could not load schedules (database may not be initialized): {str(e)}")
+            return
         
         for schedule in schedules:
             if schedule.schedule_type == ScheduleType.FIXED and schedule.fixed_times:
