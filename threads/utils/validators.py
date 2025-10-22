@@ -1,9 +1,12 @@
 import re
+from .exceptions import ValidationError
 
 def validate_post_text(text: str) -> bool:
     if not text:
         return True
-    return len(text) <= 500
+    if len(text) > 500:
+        raise ValidationError("投稿テキストは500文字以内である必要があります")
+    return True
 
 def validate_media_url(url: str) -> bool:
     url_pattern = re.compile(
@@ -13,4 +16,6 @@ def validate_media_url(url: str) -> bool:
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
         r'(?::\d+)?'
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-    return url_pattern.match(url) is not None
+    if not url_pattern.match(url):
+        raise ValidationError("無効なURLです")
+    return True
