@@ -16,20 +16,20 @@ def auth_page() -> rx.Component:
                         rx.vstack(
                             rx.text("認証リンク:", weight="bold"),
                             rx.cond(
-                                AuthState.auth_url != "",
+                                AuthState.computed_auth_url != "",
                                 rx.link(
                                     rx.button(
                                         "Threadsで認証する",
                                         size="3",
                                         color_scheme="blue",
                                     ),
-                                    href=AuthState.auth_url,
+                                    href=AuthState.computed_auth_url,
                                     is_external=True,
                                 ),
                                 rx.text("URLを生成中...", color="gray"),
                             ),
                             rx.text("※ 新しいタブで開きます", size="2", color="gray"),
-                            rx.text(f"Debug: {AuthState.auth_url}", size="1", color="gray"),
+                            rx.text(AuthState.computed_auth_url, size="1", color="gray"),
                         ),
                         spacing="4",
                     ),
@@ -114,5 +114,4 @@ def auth_page() -> rx.Component:
             margin_left="250px",
             width="100%",
         ),
-        on_mount=AuthState.generate_auth_url,
     )

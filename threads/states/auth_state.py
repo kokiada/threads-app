@@ -12,6 +12,32 @@ class AuthState(rx.State):
     success_message: str = ""
     processing: bool = False
     
+    @rx.var
+    def computed_auth_url(self) -> str:
+        """認証URLを計算プロパティとして生成"""
+        try:
+            app_id = os.getenv("THREADS_APP_ID")
+            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            
+            if not app_id:
+                return ""
+            
+            if base_url.startswith("http://"):
+                return ""
+            
+            redirect_uri = f"{base_url}/auth/callback"
+            scope = "threads_basic,threads_content_publish,threads_manage_insights,threads_manage_replies,threads_read_replies"
+            
+            return (
+                f"https://threads.net/oauth/authorize?"
+                f"client_id={app_id}&"
+                f"redirect_uri={redirect_uri}&"
+                f"scope={scope}&"
+                f"response_type=code"
+            )
+        except:
+            return ""
+    
     def generate_auth_url(self):
         """認証URLを生成"""
         try:
