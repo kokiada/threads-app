@@ -35,7 +35,7 @@ def auth_page() -> rx.Component:
                     rx.vstack(
                         rx.heading("ステップ2: 認証コードを入力", size="6"),
                         rx.text("認証後、リダイレクトされたURLから 'code=' の後の文字列をコピーして貼り付けてください"),
-                        rx.text("例: http://localhost:3000/auth/callback?code=AQBxxx...", size="2", color="gray"),
+                        rx.text("例: https://localhost:3000/auth/callback?code=AQBxxx...", size="2", color="gray"),
                         rx.input(
                             placeholder="認証コード（code=の後の文字列）",
                             value=AuthState.auth_code,

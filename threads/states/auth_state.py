@@ -14,7 +14,7 @@ class AuthState(rx.State):
     def generate_auth_url(self):
         """認証URLを生成"""
         app_id = os.getenv("THREADS_APP_ID")
-        redirect_uri = "http://localhost:3000/auth/callback"
+        redirect_uri = "https://localhost:3000/auth/callback"
         scope = "threads_basic,threads_content_publish,threads_manage_insights,threads_manage_replies,threads_read_replies"
         
         self.auth_url = (
@@ -37,7 +37,7 @@ class AuthState(rx.State):
         
         app_id = os.getenv("THREADS_APP_ID")
         app_secret = os.getenv("THREADS_APP_SECRET")
-        redirect_uri = "http://localhost:3000/auth/callback"
+        redirect_uri = "https://localhost:3000/auth/callback"
         
         url = "https://graph.threads.net/oauth/access_token"
         data = {
