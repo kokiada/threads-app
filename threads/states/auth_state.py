@@ -41,6 +41,13 @@ class AuthState(rx.State):
     def generate_auth_url(self):
         """認証URLを生成"""
         try:
+            # URLパラメータからcodeを取得
+            code = self.router.page.params.get("code", "")
+            if code:
+                self.auth_code = code
+                self.exchange_token()
+                return
+            
             app_id = os.getenv("THREADS_APP_ID")
             base_url = os.getenv("BASE_URL", "http://localhost:3000")
             

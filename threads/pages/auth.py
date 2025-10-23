@@ -95,5 +95,6 @@ def auth_page() -> rx.Component:
             ),
             margin_left="250px",
             width="100%",
+            on_mount=AuthState.generate_auth_url,
         ),
     )
