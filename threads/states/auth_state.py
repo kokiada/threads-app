@@ -44,12 +44,28 @@ class AuthState(rx.State):
         logger = logging.getLogger(__name__)
         
         try:
-            code = self.router.page.params.get("code", "")
+            # 複数の方法でパラメータを取得してみる
+            code = ""
+            try:
+                code = self.router.page.params.get("code", "")
+            except:
+                pass
+            
+            if not code:
+                try:
+                    code = self.router.session.client_token
+                except:
+                    pass
+            
+            logger.info(f"check_auth_code - router.page.params: {self.router.page.params}")
             logger.info(f"check_auth_code - code: {code[:20] if code else 'None'}")
             
             if code:
                 self.auth_code = code
+                logger.info(f"auth_code set to: {self.auth_code[:20]}")
                 yield from self.get_user_id_from_code()
+            else:
+                logger.warning("No code found in URL parameters")
         except Exception as e:
             logger.error(f"Error in check_auth_code: {str(e)}", exc_info=True)
             self.error_message = f"エラー: {str(e)}"
