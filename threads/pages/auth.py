@@ -41,43 +41,24 @@ def auth_page() -> rx.Component:
 
                 
                 rx.cond(
-                    AuthState.success_message != "",
+                    AuthState.processing,
                     rx.card(
                         rx.vstack(
-                            rx.callout(
-                                AuthState.success_message,
-                                color_scheme="green",
-                            ),
-                            rx.heading("取得した情報", size="6"),
-                            rx.vstack(
-                                rx.hstack(
-                                    rx.text("User ID:", weight="bold"),
-                                    rx.text(AuthState.user_id),
-                                ),
-                                rx.hstack(
-                                    rx.text("アクセストークン:", weight="bold"),
-                                    rx.text(AuthState.access_token[:20] + "..."),
-                                ),
-                                rx.divider(),
-                                rx.heading("アカウント登録", size="5"),
-                                rx.text("アカウント名を入力して登録してください"),
-                                rx.input(
-                                    placeholder="アカウント名（例: マイアカウント）",
-                                    value=AuthState.account_name,
-                                    on_change=AuthState.set_account_name,
-                                    width="100%",
-                                ),
-                                rx.button(
-                                    "アカウントを登録",
-                                    on_click=AuthState.register_account,
-                                    size="3",
-                                    color_scheme="green",
-                                ),
-                                spacing="3",
-                            ),
-                            spacing="4",
+                            rx.spinner(size="3"),
+                            rx.text("認証処理中...", size="4", weight="bold"),
+                            spacing="3",
+                            align="center",
+                            padding="2rem",
                         ),
                         width="100%",
+                    ),
+                    rx.cond(
+                        AuthState.success_message != "",
+                        rx.callout(
+                            AuthState.success_message,
+                            color_scheme="green",
+                            size="3",
+                        ),
                     ),
                 ),
                 

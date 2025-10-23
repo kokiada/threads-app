@@ -89,6 +89,9 @@ class AuthState(rx.State):
             self.error_message = "認証コードを入力してください"
             return
         
+        self.processing = True
+        yield
+        
         app_id = os.getenv("THREADS_APP_ID")
         app_secret = os.getenv("THREADS_APP_SECRET")
         base_url = os.getenv("BASE_URL", "http://localhost:3000")
@@ -122,6 +125,8 @@ class AuthState(rx.State):
         except Exception as e:
             self.error_message = f"エラー: {str(e)}"
             self.success_message = ""
+        finally:
+            self.processing = False
     
     def _auto_register_account(self):
         """アカウントを自動登録"""
