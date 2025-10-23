@@ -45,7 +45,6 @@ class AuthState(rx.State):
             code = self.router.page.params.get("code", "")
             if code:
                 self.auth_code = code
-                self.error_message = f"Debug: code={code[:20]}..."
                 self.exchange_token()
                 return
             
@@ -85,7 +84,7 @@ class AuthState(rx.State):
         self.account_name = name
     
     def exchange_token(self):
-        """認証コードをアクセストークンに交換"""
+        """認証コードをアクセストークンに交換し、自動登録"""
         if not self.auth_code:
             self.error_message = "認証コードを入力してください"
             return
@@ -111,8 +110,10 @@ class AuthState(rx.State):
             
             self.access_token = result.get("access_token", "")
             self.user_id = result.get("user_id", "")
-            self.success_message = "アクセストークン取得成功！"
-            self.error_message = ""
+            
+            # アカウントを自動登録
+            if self.access_token and self.user_id:
+                self._auto_register_account()
             
         except requests.exceptions.HTTPError as e:
             error_detail = e.response.json() if e.response else str(e)
@@ -121,6 +122,41 @@ class AuthState(rx.State):
         except Exception as e:
             self.error_message = f"エラー: {str(e)}"
             self.success_message = ""
+    
+    def _auto_register_account(self):
+        """アカウントを自動登録"""
+        from ..models.base import get_db
+        from ..models.account import Account
+        from ..services.account_service import AccountService
+        from datetime import datetime, timedelta
+        
+        db = next(get_db())
+        try:
+            # 既に登録済みか確認
+            existing = db.query(Account).filter_by(threads_user_id=self.user_id).first()
+            if existing:
+                self.success_message = f"アカウント '{existing.name}' は既に登録済みです"
+                self.error_message = ""
+                return
+            
+            # アカウント名を生成
+            account_name = f"Account_{self.user_id[:8]}"
+            
+            AccountService.create_account(
+                db=db,
+                name=account_name,
+                threads_user_id=self.user_id,
+                access_token=self.access_token,
+                token_expires_at=datetime.now() + timedelta(days=60)
+            )
+            self.success_message = f"アカウント '{account_name}' を追加しました！"
+            self.error_message = ""
+            
+        except Exception as e:
+            self.error_message = f"登録エラー: {str(e)}"
+            self.success_message = ""
+        finally:
+            db.close()
     
     def register_account(self):
         """アカウントを登録"""
