@@ -38,16 +38,27 @@ class AuthState(rx.State):
         except:
             return ""
     
-    def generate_auth_url(self):
-        """認証URLを生成"""
+    def handle_page_load(self):
+        """ページ読み込み時の処理"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
-            # URLパラメータからcodeを取得
+            # クエリパラメータからcodeを取得
             code = self.router.page.params.get("code", "")
-            if code:
-                self.auth_code = code
-                self.exchange_token()
-                return
+            logger.info(f"Page load - code present: {bool(code)}")
             
+            if code:
+                logger.info(f"Code found: {code[:20]}...")
+                self.auth_code = code
+                yield from self.exchange_token()
+        except Exception as e:
+            logger.error(f"Error in handle_page_load: {str(e)}", exc_info=True)
+            self.error_message = f"ページ読み込みエラー: {str(e)}"
+    
+    def generate_auth_url(self):
+        """認証URLを生成（非推奨 - computed_auth_urlを使用）"""
+        try:
             app_id = os.getenv("THREADS_APP_ID")
             base_url = os.getenv("BASE_URL", "http://localhost:3000")
             
@@ -87,9 +98,12 @@ class AuthState(rx.State):
         """認証コードをアクセストークンに交換し、自動登録"""
         if not self.auth_code:
             self.error_message = "認証コードを入力してください"
+            yield
             return
         
         self.processing = True
+        self.error_message = ""
+        self.success_message = ""
         yield
         
         app_id = os.getenv("THREADS_APP_ID")
@@ -117,6 +131,7 @@ class AuthState(rx.State):
             # アカウントを自動登録
             if self.access_token and self.user_id:
                 self._auto_register_account()
+                yield
             
         except requests.exceptions.HTTPError as e:
             error_detail = e.response.json() if e.response else str(e)
@@ -127,6 +142,7 @@ class AuthState(rx.State):
             self.success_message = ""
         finally:
             self.processing = False
+            yield
     
     def _auto_register_account(self):
         """アカウントを自動登録"""
@@ -134,18 +150,24 @@ class AuthState(rx.State):
         from ..models.account import Account
         from ..services.account_service import AccountService
         from datetime import datetime, timedelta
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Auto-registering account: user_id={self.user_id}")
         
         db = next(get_db())
         try:
             # 既に登録済みか確認
             existing = db.query(Account).filter_by(threads_user_id=self.user_id).first()
             if existing:
+                logger.info(f"Account already exists: {existing.name}")
                 self.success_message = f"アカウント '{existing.name}' は既に登録済みです"
                 self.error_message = ""
                 return
             
             # アカウント名を生成
             account_name = f"Account_{self.user_id[:8]}"
+            logger.info(f"Creating new account: {account_name}")
             
             AccountService.create_account(
                 db=db,
@@ -154,10 +176,12 @@ class AuthState(rx.State):
                 access_token=self.access_token,
                 token_expires_at=datetime.now() + timedelta(days=60)
             )
+            logger.info(f"Account created successfully: {account_name}")
             self.success_message = f"アカウント '{account_name}' を追加しました！"
             self.error_message = ""
             
         except Exception as e:
+            logger.error(f"Auto-registration failed: {str(e)}", exc_info=True)
             self.error_message = f"登録エラー: {str(e)}"
             self.success_message = ""
         finally:

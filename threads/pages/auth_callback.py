@@ -5,11 +5,16 @@ def auth_callback_page() -> rx.Component:
     return rx.fragment(
         rx.script(
             """
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            if (code) {
-                window.location.href = '/auth?code=' + code;
-            }
+            (function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                console.log('Callback - code:', code);
+                if (code) {
+                    window.location.href = '/auth?code=' + encodeURIComponent(code);
+                } else {
+                    window.location.href = '/auth';
+                }
+            })();
             """
         ),
         rx.center(
