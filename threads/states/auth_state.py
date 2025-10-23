@@ -38,23 +38,21 @@ class AuthState(rx.State):
         except:
             return ""
     
-    def handle_page_load(self):
-        """ページ読み込み時の処理"""
+    def check_auth_code(self):
+        """認証コードをチェックしてトークン取得"""
         import logging
         logger = logging.getLogger(__name__)
         
         try:
-            # クエリパラメータからcodeを取得
             code = self.router.page.params.get("code", "")
-            logger.info(f"Page load - code present: {bool(code)}")
+            logger.info(f"check_auth_code - code: {code[:20] if code else 'None'}")
             
             if code:
-                logger.info(f"Code found: {code[:20]}...")
                 self.auth_code = code
-                yield from self.exchange_token()
+                yield from self.get_user_id_from_code()
         except Exception as e:
-            logger.error(f"Error in handle_page_load: {str(e)}", exc_info=True)
-            self.error_message = f"ページ読み込みエラー: {str(e)}"
+            logger.error(f"Error in check_auth_code: {str(e)}", exc_info=True)
+            self.error_message = f"エラー: {str(e)}"
     
     def generate_auth_url(self):
         """認証URLを生成（非推奨 - computed_auth_urlを使用）"""
@@ -94,16 +92,15 @@ class AuthState(rx.State):
     def set_account_name(self, name: str):
         self.account_name = name
     
-    def exchange_token(self):
-        """認証コードをアクセストークンに交換し、自動登録"""
+    def get_user_id_from_code(self):
+        """認証コードからUser IDを取得"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if not self.auth_code:
-            self.error_message = "認証コードを入力してください"
-            yield
             return
         
         self.processing = True
-        self.error_message = ""
-        self.success_message = ""
         yield
         
         app_id = os.getenv("THREADS_APP_ID")
@@ -128,77 +125,49 @@ class AuthState(rx.State):
             self.access_token = result.get("access_token", "")
             self.user_id = result.get("user_id", "")
             
-            # アカウントを自動登録
-            if self.access_token and self.user_id:
-                self._auto_register_account()
-                yield
+            logger.info(f"Token obtained - user_id: {self.user_id}")
             
         except requests.exceptions.HTTPError as e:
             error_detail = e.response.json() if e.response else str(e)
+            logger.error(f"Token exchange failed: {error_detail}")
             self.error_message = f"APIエラー: {error_detail}"
-            self.success_message = ""
         except Exception as e:
+            logger.error(f"Error: {str(e)}", exc_info=True)
             self.error_message = f"エラー: {str(e)}"
-            self.success_message = ""
         finally:
             self.processing = False
             yield
     
-    def _auto_register_account(self):
-        """アカウントを自動登録"""
+    def manual_register_account(self):
+        """手動でアカウントを登録"""
+        import logging
         from ..models.base import get_db
         from ..models.account import Account
         from ..services.account_service import AccountService
         from datetime import datetime, timedelta
-        import logging
         
         logger = logging.getLogger(__name__)
-        logger.info(f"Auto-registering account: user_id={self.user_id}")
         
-        db = next(get_db())
-        try:
-            # 既に登録済みか確認
-            existing = db.query(Account).filter_by(threads_user_id=self.user_id).first()
-            if existing:
-                logger.info(f"Account already exists: {existing.name}")
-                self.success_message = f"アカウント '{existing.name}' は既に登録済みです"
-                self.error_message = ""
-                return
-            
-            # アカウント名を生成
-            account_name = f"Account_{self.user_id[:8]}"
-            logger.info(f"Creating new account: {account_name}")
-            
-            AccountService.create_account(
-                db=db,
-                name=account_name,
-                threads_user_id=self.user_id,
-                access_token=self.access_token,
-                token_expires_at=datetime.now() + timedelta(days=60)
-            )
-            logger.info(f"Account created successfully: {account_name}")
-            self.success_message = f"アカウント '{account_name}' を追加しました！"
-            self.error_message = ""
-            
-        except Exception as e:
-            logger.error(f"Auto-registration failed: {str(e)}", exc_info=True)
-            self.error_message = f"登録エラー: {str(e)}"
-            self.success_message = ""
-        finally:
-            db.close()
-    
-    def register_account(self):
-        """アカウントを登録"""
-        if not self.account_name or not self.user_id or not self.access_token:
-            self.error_message = "アカウント名、User ID、アクセストークンが必要です"
+        if not self.account_name:
+            self.error_message = "アカウント名を入力してください"
             return
         
-        from ..models.base import get_db
-        from ..services.account_service import AccountService
-        from datetime import datetime, timedelta
+        if not self.access_token or not self.user_id:
+            self.error_message = "アクセストークンが取得されていません"
+            return
+        
+        self.processing = True
+        yield
+        
+        logger.info(f"Manual registration: name={self.account_name}, user_id={self.user_id}")
         
         db = next(get_db())
         try:
+            existing = db.query(Account).filter_by(threads_user_id=self.user_id).first()
+            if existing:
+                self.error_message = f"アカウントは既に登録済みです: {existing.name}"
+                return
+            
             AccountService.create_account(
                 db=db,
                 name=self.account_name,
@@ -206,24 +175,16 @@ class AuthState(rx.State):
                 access_token=self.access_token,
                 token_expires_at=datetime.now() + timedelta(days=60)
             )
-            self.success_message = f"アカウント '{self.account_name}' を登録しました！"
-            return rx.redirect("/accounts")
+            logger.info(f"Account created: {self.account_name}")
+            self.success_message = f"アカウント '{self.account_name}' を追加しました！"
+            self.error_message = ""
+            
         except Exception as e:
+            logger.error(f"Registration failed: {str(e)}", exc_info=True)
             self.error_message = f"登録エラー: {str(e)}"
         finally:
-            db.close()
-    
-    def handle_callback(self):
-        """コールバックURLから認証コードを自動取得"""
-        # URLパラメータからcodeを取得
-        code = self.router.page.params.get("code", "")
-        if code:
-            # #_ を除去
-            code = code.split("#")[0]
-            self.auth_code = code
-            self.processing = True
-            # トークン交換を実行
-            self.exchange_token()
             self.processing = False
-            # JavaScriptでリダイレクト
-            return rx.redirect("/auth")
+            db.close()
+            yield
+    
+

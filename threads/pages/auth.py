@@ -36,9 +36,30 @@ def auth_page() -> rx.Component:
                     width="100%",
                 ),
                 
-
-                
-
+                rx.cond(
+                    AuthState.auth_code != "",
+                    rx.card(
+                        rx.vstack(
+                            rx.heading("ステップ2: アカウント名を入力", size="6"),
+                            rx.text(f"認証コード: {AuthState.auth_code[:20]}...", size="2", color="gray"),
+                            rx.text(f"User ID: {AuthState.user_id}", size="2", color="gray"),
+                            rx.input(
+                                placeholder="アカウント名を入力",
+                                value=AuthState.account_name,
+                                on_change=AuthState.set_account_name,
+                                size="3",
+                            ),
+                            rx.button(
+                                "アカウントを追加",
+                                on_click=AuthState.manual_register_account,
+                                size="3",
+                                color_scheme="green",
+                            ),
+                            spacing="4",
+                        ),
+                        width="100%",
+                    ),
+                ),
                 
                 rx.cond(
                     AuthState.processing,
@@ -76,6 +97,6 @@ def auth_page() -> rx.Component:
             ),
             margin_left="250px",
             width="100%",
-            on_mount=AuthState.handle_page_load,
+            on_mount=AuthState.check_auth_code,
         ),
     )
