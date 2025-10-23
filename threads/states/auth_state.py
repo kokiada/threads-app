@@ -148,5 +148,5 @@ class AuthState(rx.State):
             # トークン交換を実行
             self.exchange_token()
             self.processing = False
-            # 認証ページにリダイレクト
+            # JavaScriptでリダイレクト
             return rx.redirect("/auth")

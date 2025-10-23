@@ -36,25 +36,7 @@ def auth_page() -> rx.Component:
                     width="100%",
                 ),
                 
-                rx.card(
-                    rx.vstack(
-                        rx.heading("ステップ2: 認証コードを入力", size="6"),
-                        rx.text("認証後、リダイレクトされたURLから 'code=' の後の文字列をコピーして貼り付けてください"),
-                        rx.text("例: https://localhost:3000/auth/callback?code=AQBxxx...", size="2", color="gray"),
-                        rx.input(
-                            placeholder="認証コード（code=の後の文字列）",
-                            value=AuthState.auth_code,
-                            on_change=AuthState.set_auth_code,
-                            width="100%",
-                        ),
-                        rx.button(
-                            "アクセストークンを取得",
-                            on_click=AuthState.exchange_token,
-                        ),
-                        spacing="4",
-                    ),
-                    width="100%",
-                ),
+
                 
 
                 
