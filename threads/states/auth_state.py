@@ -45,6 +45,7 @@ class AuthState(rx.State):
             code = self.router.page.params.get("code", "")
             if code:
                 self.auth_code = code
+                self.error_message = f"Debug: code={code[:20]}..."
                 self.exchange_token()
                 return
             
@@ -113,6 +114,10 @@ class AuthState(rx.State):
             self.success_message = "アクセストークン取得成功！"
             self.error_message = ""
             
+        except requests.exceptions.HTTPError as e:
+            error_detail = e.response.json() if e.response else str(e)
+            self.error_message = f"APIエラー: {error_detail}"
+            self.success_message = ""
         except Exception as e:
             self.error_message = f"エラー: {str(e)}"
             self.success_message = ""
