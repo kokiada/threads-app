@@ -6,6 +6,7 @@ from ..services.account_service import AccountService
 from ..services.post_group_service import PostGroupService
 from ..services.post_service import PostService
 from ..services.posting_service import PostingService
+from ..utils.cloudinary_uploader import upload_file
 from .base_state import BaseState
 
 class ManualPostState(BaseState):
@@ -18,6 +19,8 @@ class ManualPostState(BaseState):
     post_text: str = ""
     media_type: str = "TEXT"
     media_urls: str = ""
+    uploaded_files: List[str] = []
+    uploading: bool = False
     posting: bool = False
     result_message: str = ""
     
@@ -60,6 +63,31 @@ class ManualPostState(BaseState):
     def set_media_urls(self, value: str):
         self.media_urls = value
     
+    async def handle_upload(self, files: List[rx.UploadFile]):
+        """ファイルをCloudinaryにアップロード"""
+        self.uploading = True
+        self.uploaded_files = []
+        
+        for file in files:
+            # ファイルを一時保存
+            upload_data = await file.read()
+            temp_path = f"/tmp/{file.filename}"
+            
+            with open(temp_path, "wb") as f:
+                f.write(upload_data)
+            
+            # Cloudinaryにアップロード
+            resource_type = "video" if self.media_type == "VIDEO" else "image"
+            url = upload_file(temp_path, resource_type)
+            
+            if url:
+                self.uploaded_files.append(url)
+        
+        # アップロードされたURLをmedia_urlsに設定
+        self.media_urls = ",".join(self.uploaded_files)
+        self.uploading = False
+        self.result_message = f"{len(self.uploaded_files)}件のファイルをアップロードしました"
+    
     def toggle_account(self, account_id: int):
         if account_id in self.selected_account_ids:
             self.selected_account_ids.remove(account_id)
@@ -73,6 +101,7 @@ class ManualPostState(BaseState):
         
         self.posting = True
         self.result_message = ""
+        yield
         
         with self.get_db() as db:
             accounts = [AccountService.get_account(db, aid) for aid in self.selected_account_ids]
@@ -101,6 +130,7 @@ class ManualPostState(BaseState):
         
         self.posting = True
         self.result_message = ""
+        yield
         
         with self.get_db() as db:
             accounts = [AccountService.get_account(db, aid) for aid in self.selected_account_ids]
