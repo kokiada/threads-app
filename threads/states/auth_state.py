@@ -38,21 +38,7 @@ class AuthState(rx.State):
         except:
             return ""
     
-    def extract_code_from_url(self):
-        """ページ読み込み時にURLからcodeを抽出"""
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        try:
-            code = self.router.page.params.get("code", "")
-            logger.info(f"extract_code_from_url - code: {code[:20] if code else 'None'}")
-            
-            if code:
-                self.auth_code = code
-                logger.info(f"Code extracted from URL: {code[:20]}")
-        except Exception as e:
-            logger.error(f"Error extracting code: {str(e)}", exc_info=True)
-        yield
+
     
     def generate_auth_url(self):
         """認証URLを生成（非推奨 - computed_auth_urlを使用）"""
