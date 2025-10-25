@@ -12,16 +12,6 @@ def auth_page() -> rx.Component:
                 rx.card(
                     rx.vstack(
                         rx.heading("ステップ1: 認証URLを開く", size="6"),
-                        rx.input(
-                            placeholder="認証後のコードを貼り付け",
-                            on_change=AuthState.set_auth_code,
-                            size="2",
-                        ),
-                        rx.button(
-                            "コードを送信",
-                            on_click=AuthState.get_user_id_from_code,
-                            size="2",
-                        ),
                         rx.text("認証を開始するには、以下のリンクをクリックしてください"),
                         rx.vstack(
                             rx.text("認証リンク:", weight="bold"),
@@ -47,12 +37,17 @@ def auth_page() -> rx.Component:
                 ),
                 
                 rx.cond(
-                    AuthState.user_id != "",
+                    AuthState.auth_code != "",
                     rx.card(
                         rx.vstack(
-                            rx.heading("ステップ2: アカウント名を入力", size="6"),
-                            rx.text(f"User ID: {AuthState.user_id}", size="2", color="gray"),
-                            rx.text("認証成功！アカウント名を入力して追加してください", size="2"),
+                            rx.heading("ステップ2: User IDとアカウント名を入力", size="6"),
+                            rx.text("認証コードを取得しました！", color="green"),
+                            rx.input(
+                                placeholder="Threads User IDを入力",
+                                value=AuthState.user_id,
+                                on_change=AuthState.set_user_id,
+                                size="3",
+                            ),
                             rx.input(
                                 placeholder="アカウント名を入力",
                                 value=AuthState.account_name,
@@ -101,23 +96,9 @@ def auth_page() -> rx.Component:
                     ),
                 ),
                 
-                rx.script(
-                    """
-                    (function() {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const code = urlParams.get('code');
-                        console.log('Auth page - code from URL:', code);
-                        if (code) {
-                            // Reflexのイベントを発火
-                            const event = new CustomEvent('set_auth_code', { detail: code });
-                            window.dispatchEvent(event);
-                        }
-                    })();
-                    """
-                ),
+
                 
-                rx.text(f"Debug - auth_code: {AuthState.auth_code[:20] if AuthState.auth_code else 'empty'}", size="1", color="gray"),
-                rx.text(f"Debug - user_id: {AuthState.user_id if AuthState.user_id else 'empty'}", size="1", color="gray"),
+
                 
                 spacing="6",
                 padding="2rem",
@@ -125,5 +106,6 @@ def auth_page() -> rx.Component:
             ),
             margin_left="250px",
             width="100%",
+            on_mount=AuthState.extract_code_from_url,
         ),
     )
