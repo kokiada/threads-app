@@ -7,25 +7,7 @@ def auth_page() -> rx.Component:
         sidebar(),
         rx.box(
             rx.vstack(
-                rx.script(
-                    """
-                    setTimeout(function() {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const code = urlParams.get('code');
-                        if (code) {
-                            console.log('Code found in URL:', code.substring(0, 20));
-                            const input = document.getElementById('auth_code_input');
-                            if (input) {
-                                input.value = code;
-                                const event = new Event('change', { bubbles: true });
-                                input.dispatchEvent(event);
-                            }
-                        }
-                    }, 500);
-                    """
-                ),
                 rx.heading("Threads API 認証", size="8"),
-                rx.text(f"Debug: auth_code = {AuthState.auth_code[:20] if AuthState.auth_code else 'empty'}", size="1", color="gray"),
                 
                 rx.card(
                     rx.vstack(
