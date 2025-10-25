@@ -25,6 +25,7 @@ def auth_page() -> rx.Component:
                     """
                 ),
                 rx.heading("Threads API 認証", size="8"),
+                rx.text(f"Debug: auth_code = {AuthState.auth_code[:20] if AuthState.auth_code else 'empty'}", size="1", color="gray"),
                 
                 rx.card(
                     rx.vstack(
@@ -127,5 +128,6 @@ def auth_page() -> rx.Component:
             ),
             margin_left="250px",
             width="100%",
+            on_mount=AuthState.load_code_from_url,
         ),
     )
