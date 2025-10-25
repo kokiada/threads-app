@@ -55,7 +55,6 @@ def auth_page() -> rx.Component:
                             value=AuthState.auth_code,
                             on_change=AuthState.set_auth_code,
                             size="3",
-                            read_only=True,
                         ),
                         rx.input(
                             placeholder="アカウント名（例: メインアカウント）",
