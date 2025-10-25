@@ -52,6 +52,7 @@ class AuthState(rx.State):
                 logger.info(f"Code extracted from URL: {code[:20]}")
         except Exception as e:
             logger.error(f"Error extracting code: {str(e)}", exc_info=True)
+        yield
     
     def generate_auth_url(self):
         """認証URLを生成（非推奨 - computed_auth_urlを使用）"""
