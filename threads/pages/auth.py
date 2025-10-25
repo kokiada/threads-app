@@ -48,22 +48,17 @@ def auth_page() -> rx.Component:
                 
                 rx.card(
                     rx.vstack(
-                        rx.heading("ステップ2: 情報を入力", size="6"),
-                        rx.text("認証後、以下の情報を入力してください"),
+                        rx.heading("ステップ2: アカウント名を入力", size="6"),
+                        rx.text("認証後、アカウント名を入力してください（任意）"),
                         rx.input(
                             placeholder="認証コード（自動入力）",
                             value=AuthState.auth_code,
                             on_change=AuthState.set_auth_code,
                             size="3",
+                            read_only=True,
                         ),
                         rx.input(
-                            placeholder="Threads User IDを入力",
-                            value=AuthState.user_id,
-                            on_change=AuthState.set_user_id,
-                            size="3",
-                        ),
-                        rx.input(
-                            placeholder="アカウント名を入力",
+                            placeholder="アカウント名（例: メインアカウント）",
                             value=AuthState.account_name,
                             on_change=AuthState.set_account_name,
                             size="3",

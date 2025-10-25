@@ -102,10 +102,6 @@ class AuthState(rx.State):
         
         logger = logging.getLogger(__name__)
         
-        if not self.account_name or not self.user_id:
-            self.error_message = "アカウント名とUser IDを入力してください"
-            return
-        
         if not self.auth_code:
             self.error_message = "認証コードがありません"
             return
@@ -134,26 +130,39 @@ class AuthState(rx.State):
             result = response.json()
             
             access_token = result.get("access_token", "")
-            logger.info(f"Token obtained for user_id: {self.user_id}")
+            threads_user_id = result.get("user_id", "")
+            
+            if not threads_user_id:
+                self.error_message = "User IDを取得できませんでした"
+                return
+            
+            logger.info(f"Token obtained for user_id: {threads_user_id}")
+            
+            # アカウント名が空の場合はUser IDを使用
+            account_name = self.account_name if self.account_name else f"Account_{threads_user_id[:8]}"
             
             # アカウント登録
             db = next(get_db())
             try:
-                existing = db.query(Account).filter_by(threads_user_id=self.user_id).first()
+                existing = db.query(Account).filter_by(threads_user_id=threads_user_id).first()
                 if existing:
                     self.error_message = f"アカウントは既に登録済みです: {existing.name}"
                     return
                 
                 AccountService.create_account(
                     db=db,
-                    name=self.account_name,
-                    threads_user_id=self.user_id,
+                    name=account_name,
+                    threads_user_id=threads_user_id,
                     access_token=access_token,
                     token_expires_at=datetime.now() + timedelta(days=60)
                 )
-                logger.info(f"Account created: {self.account_name}")
-                self.success_message = f"アカウント '{self.account_name}' を追加しました！"
+                logger.info(f"Account created: {account_name}")
+                self.success_message = f"アカウント '{account_name}' を追加しました！"
                 self.error_message = ""
+                
+                # フォームをリセット
+                self.auth_code = ""
+                self.account_name = ""
             finally:
                 db.close()
                 
