@@ -7,6 +7,17 @@ def auth_page() -> rx.Component:
         sidebar(),
         rx.box(
             rx.vstack(
+                rx.script(
+                    """
+                    (function() {
+                        const params = new URLSearchParams(window.location.search);
+                        const code = params.get('code');
+                        if (code) {
+                            console.log('Auth code detected:', code.substring(0, 20));
+                        }
+                    })();
+                    """
+                ),
                 rx.heading("Threads API 認証", size="8"),
                 
                 rx.card(
@@ -40,12 +51,10 @@ def auth_page() -> rx.Component:
                         rx.heading("ステップ2: 情報を入力", size="6"),
                         rx.text("認証後、以下の情報を入力してください"),
                         rx.input(
-                            id="auth_code_input",
                             placeholder="認証コード（自動入力）",
                             value=AuthState.auth_code,
                             on_change=AuthState.set_auth_code,
                             size="3",
-                            read_only=True,
                         ),
                         rx.input(
                             placeholder="Threads User IDを入力",
