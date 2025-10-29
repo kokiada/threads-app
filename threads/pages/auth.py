@@ -64,9 +64,21 @@ def auth_page() -> rx.Component:
                             size="3",
                             color_scheme="green",
                         ),
-                        rx.text(f"Debug: auth_code={AuthState.auth_code}", size="1", color="gray"),
-                        rx.text(f"Debug: user_id={AuthState.user_id}", size="1", color="gray"),
-                        rx.text(f"Debug: account_name={AuthState.account_name}", size="1", color="gray"),
+                        rx.script(
+                            """
+                            console.log('DEBUG: Auth page loaded');
+                            const button = document.querySelector('button[color-scheme="green"]');
+                            if (button) {
+                                button.addEventListener('click', function() {
+                                    console.log('DEBUG: Button clicked!');
+                                });
+                            }
+                            """
+                        ),
+                        rx.text(f"Browser Debug: auth_code={AuthState.auth_code}", size="1", color="gray"),
+                        rx.text(f"Browser Debug: user_id={AuthState.user_id}", size="1", color="gray"),
+                        rx.text(f"Browser Debug: account_name={AuthState.account_name}", size="1", color="gray"),
+                        rx.text(f"Browser Debug: processing={AuthState.processing}", size="1", color="gray"),
                         spacing="4",
                     ),
                     width="100%",

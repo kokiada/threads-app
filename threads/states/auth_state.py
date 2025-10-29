@@ -98,29 +98,34 @@ class AuthState(rx.State):
     def manual_register_account(self):
         """手動でアカウントを登録"""
         import logging
+        import sys
         from ..models.base import get_db
         from ..models.account import Account
         from ..services.account_service import AccountService
         from datetime import datetime, timedelta
         
         logger = logging.getLogger(__name__)
-        print("DEBUG: === manual_register_account called ===")
-        print(f"DEBUG: auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
-        print(f"DEBUG: user_id: {self.user_id}")
-        print(f"DEBUG: account_name: {self.account_name}")
+        print("DEBUG: === manual_register_account called ===", flush=True)
+        sys.stdout.flush()
+        print(f"DEBUG: auth_code: {self.auth_code[:20] if self.auth_code else 'None'}", flush=True)
+        print(f"DEBUG: user_id: {self.user_id}", flush=True)
+        print(f"DEBUG: account_name: {self.account_name}", flush=True)
+        sys.stdout.flush()
         logger.info("DEBUG: === manual_register_account called ===")
         logger.info(f"DEBUG: auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
         logger.info(f"DEBUG: user_id: {self.user_id}")
         logger.info(f"DEBUG: account_name: {self.account_name}")
         
         if not self.auth_code:
-            print("DEBUG: No auth_code provided")
+            print("DEBUG: No auth_code provided", flush=True)
+            sys.stdout.flush()
             logger.error("DEBUG: No auth_code provided")
             self.error_message = "認証コードがありません"
             yield
             return
         
-        print("DEBUG: Starting token exchange...")
+        print("DEBUG: Starting token exchange...", flush=True)
+        sys.stdout.flush()
         logger.info("DEBUG: Starting token exchange...")
         self.processing = True
         yield
