@@ -81,17 +81,7 @@ class AuthState(rx.State):
     def set_user_id(self, uid: str):
         self.user_id = uid
     
-    def load_code_from_url(self):
-        """URLパラメータからcodeを読み込む"""
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        code = self.router.page.params.get("code", "")
-        if code:
-            self.auth_code = code
-            logger.info(f"Code loaded from URL: {code[:20]}")
-        yield
-    
+
     def manual_register_account(self):
         """手動でアカウントを登録"""
         import logging

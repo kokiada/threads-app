@@ -7,17 +7,7 @@ def auth_page() -> rx.Component:
         sidebar(),
         rx.box(
             rx.vstack(
-                rx.script(
-                    """
-                    (function() {
-                        const params = new URLSearchParams(window.location.search);
-                        const code = params.get('code');
-                        if (code) {
-                            console.log('Auth code detected:', code.substring(0, 20));
-                        }
-                    })();
-                    """
-                ),
+
                 rx.heading("Threads API 認証", size="8"),
                 
                 rx.card(
@@ -50,10 +40,32 @@ def auth_page() -> rx.Component:
                     rx.vstack(
                         rx.heading("ステップ2: アカウント名を入力", size="6"),
                         rx.text("認証後、アカウント名を入力してください（任意）"),
+                        rx.script(
+                            """
+                            setTimeout(function() {
+                                const params = new URLSearchParams(window.location.search);
+                                const code = params.get('code');
+                                if (code) {
+                                    const input = document.querySelector('input[placeholder*="認証コード"]');
+                                    if (input) {
+                                        input.value = code;
+                                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                }
+                            }, 300);
+                            """
+                        ),
                         rx.input(
                             placeholder="認証コード（自動入力）",
                             value=AuthState.auth_code,
                             on_change=AuthState.set_auth_code,
+                            size="3",
+                            read_only=True,
+                        ),
+                        rx.input(
+                            placeholder="Threads User IDを入力",
+                            value=AuthState.user_id,
+                            on_change=AuthState.set_user_id,
                             size="3",
                         ),
                         rx.input(
@@ -113,6 +125,5 @@ def auth_page() -> rx.Component:
             ),
             margin_left="250px",
             width="100%",
-            on_mount=AuthState.load_code_from_url,
         ),
     )
