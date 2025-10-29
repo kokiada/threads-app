@@ -8,12 +8,12 @@ def auth_callback_page() -> rx.Component:
             rx.text("自動的にリダイレクトしています"),
             rx.script(
                 """
-                window.addEventListener('load', function() {
+                (function() {
                     const params = new URLSearchParams(window.location.search);
                     const code = params.get('code');
                     const targetUrl = code ? '/auth?code=' + encodeURIComponent(code) : '/auth';
                     window.location.replace(targetUrl);
-                });
+                })();
                 """
             ),
             spacing="4",
