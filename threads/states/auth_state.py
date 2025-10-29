@@ -149,13 +149,15 @@ class AuthState(rx.State):
         }
         
         try:
-            print(f"DEBUG: Requesting token from: {url}")
-            print(f"DEBUG: Request data: client_id={app_id}, redirect_uri={redirect_uri}, code={self.auth_code[:20]}...")
+            print(f"DEBUG: Requesting token from: {url}", flush=True)
+            print(f"DEBUG: Request data: client_id={app_id}, redirect_uri={redirect_uri}, code={self.auth_code[:20]}...", flush=True)
             logger.info(f"DEBUG: Requesting token from: {url}")
             logger.info(f"DEBUG: Request data: client_id={app_id}, redirect_uri={redirect_uri}, code={self.auth_code[:20]}...")
             response = requests.post(url, data=data)
-            print(f"DEBUG: Response status: {response.status_code}")
+            print(f"DEBUG: Response status: {response.status_code}", flush=True)
+            print(f"DEBUG: Response body: {response.text}", flush=True)
             logger.info(f"DEBUG: Response status: {response.status_code}")
+            logger.info(f"DEBUG: Response body: {response.text}")
             response.raise_for_status()
             result = response.json()
             print(f"DEBUG: Token response: {result}")
@@ -209,8 +211,12 @@ class AuthState(rx.State):
                 db.close()
                 
         except requests.exceptions.HTTPError as e:
-            error_detail = e.response.json() if e.response else str(e)
-            print(f"DEBUG: Token exchange failed: {error_detail}")
+            try:
+                error_detail = e.response.json() if e.response else str(e)
+            except:
+                error_detail = e.response.text if e.response else str(e)
+            print(f"DEBUG: Token exchange failed: {error_detail}", flush=True)
+            sys.stdout.flush()
             logger.error(f"DEBUG: Token exchange failed: {error_detail}")
             self.error_message = f"APIエラー: {error_detail}"
         except Exception as e:

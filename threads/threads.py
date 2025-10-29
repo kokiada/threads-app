@@ -30,5 +30,5 @@ app.add_page(metrics_page, route="/metrics")
 app.add_page(auth_page, route="/auth")
 app.add_page(auth_callback_page, route="/auth/callback")
 
-# スケジューラー起動
-start_scheduler()
+# スケジューラー起動（デバッグ時は無効化）
+# start_scheduler()
