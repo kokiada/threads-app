@@ -94,6 +94,7 @@ class AuthState(rx.State):
         
         if not self.auth_code:
             self.error_message = "認証コードがありません"
+            yield
             return
         
         self.processing = True
@@ -124,6 +125,8 @@ class AuthState(rx.State):
             
             if not threads_user_id:
                 self.error_message = "User IDを取得できませんでした"
+                self.processing = False
+                yield
                 return
             
             logger.info(f"Token obtained for user_id: {threads_user_id}")
@@ -137,6 +140,8 @@ class AuthState(rx.State):
                 existing = db.query(Account).filter_by(threads_user_id=threads_user_id).first()
                 if existing:
                     self.error_message = f"アカウントは既に登録済みです: {existing.name}"
+                    self.processing = False
+                    yield
                     return
                 
                 AccountService.create_account(
