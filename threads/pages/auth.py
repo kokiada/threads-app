@@ -7,8 +7,6 @@ def auth_page() -> rx.Component:
         sidebar(),
         rx.box(
             rx.vstack(
-                on_mount=AuthState.on_load,
-
                 rx.heading("Threads API 認証", size="8"),
                 
                 rx.card(
@@ -111,6 +109,7 @@ def auth_page() -> rx.Component:
                 spacing="6",
                 padding="2rem",
                 align="start",
+                on_mount=AuthState.on_load,
             ),
             margin_left="250px",
             width="100%",
