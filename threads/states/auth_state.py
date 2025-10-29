@@ -12,6 +12,17 @@ class AuthState(rx.State):
     success_message: str = ""
     processing: bool = False
     
+    def on_load(self):
+        """ページロード時にURLパラメータからcodeを取得"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        code = self.router.page.params.get("code", "")
+        logger.info(f"DEBUG: on_load called, code from URL: {code[:20] if code else 'None'}")
+        if code:
+            self.auth_code = code
+            logger.info(f"DEBUG: auth_code set to: {self.auth_code[:20]}")
+    
     @rx.var
     def computed_auth_url(self) -> str:
         """認証URLを計算プロパティとして生成"""
@@ -91,18 +102,18 @@ class AuthState(rx.State):
         from datetime import datetime, timedelta
         
         logger = logging.getLogger(__name__)
-        logger.info("=== manual_register_account called ===")
-        logger.info(f"auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
-        logger.info(f"user_id: {self.user_id}")
-        logger.info(f"account_name: {self.account_name}")
+        logger.info("DEBUG: === manual_register_account called ===")
+        logger.info(f"DEBUG: auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
+        logger.info(f"DEBUG: user_id: {self.user_id}")
+        logger.info(f"DEBUG: account_name: {self.account_name}")
         
         if not self.auth_code:
-            logger.error("No auth_code provided")
+            logger.error("DEBUG: No auth_code provided")
             self.error_message = "認証コードがありません"
             yield
             return
         
-        logger.info("Starting token exchange...")
+        logger.info("DEBUG: Starting token exchange...")
         self.processing = True
         yield
         
@@ -122,43 +133,44 @@ class AuthState(rx.State):
         }
         
         try:
-            logger.info(f"Requesting token from: {url}")
+            logger.info(f"DEBUG: Requesting token from: {url}")
+            logger.info(f"DEBUG: Request data: client_id={app_id}, redirect_uri={redirect_uri}, code={self.auth_code[:20]}...")
             response = requests.post(url, data=data)
-            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"DEBUG: Response status: {response.status_code}")
             response.raise_for_status()
             result = response.json()
-            logger.info(f"Token response: {result}")
+            logger.info(f"DEBUG: Token response: {result}")
             
             access_token = result.get("access_token", "")
             threads_user_id = result.get("user_id", "")
             
             if not threads_user_id:
-                logger.error("No user_id in response")
+                logger.error("DEBUG: No user_id in response")
                 self.error_message = "User IDを取得できませんでした"
                 self.processing = False
                 yield
                 return
             
-            logger.info(f"Token obtained for user_id: {threads_user_id}")
-            logger.info(f"Access token length: {len(access_token)}")
+            logger.info(f"DEBUG: Token obtained for user_id: {threads_user_id}")
+            logger.info(f"DEBUG: Access token length: {len(access_token)}")
             
             # アカウント名が空の場合はUser IDを使用
             account_name = self.account_name if self.account_name else f"Account_{threads_user_id[:8]}"
-            logger.info(f"Account name: {account_name}")
+            logger.info(f"DEBUG: Account name: {account_name}")
             
             # アカウント登録
             db = next(get_db())
             try:
-                logger.info("Checking for existing account...")
+                logger.info("DEBUG: Checking for existing account...")
                 existing = db.query(Account).filter_by(threads_user_id=threads_user_id).first()
                 if existing:
-                    logger.warning(f"Account already exists: {existing.name}")
+                    logger.warning(f"DEBUG: Account already exists: {existing.name}")
                     self.error_message = f"アカウントは既に登録済みです: {existing.name}"
                     self.processing = False
                     yield
                     return
                 
-                logger.info("Creating account...")
+                logger.info("DEBUG: Creating account...")
                 AccountService.create_account(
                     db=db,
                     name=account_name,
@@ -166,7 +178,7 @@ class AuthState(rx.State):
                     access_token=access_token,
                     token_expires_at=datetime.now() + timedelta(days=60)
                 )
-                logger.info(f"Account created successfully: {account_name}")
+                logger.info(f"DEBUG: Account created successfully: {account_name}")
                 self.success_message = f"アカウント '{account_name}' を追加しました！"
                 self.error_message = ""
                 
@@ -178,13 +190,13 @@ class AuthState(rx.State):
                 
         except requests.exceptions.HTTPError as e:
             error_detail = e.response.json() if e.response else str(e)
-            logger.error(f"Token exchange failed: {error_detail}")
+            logger.error(f"DEBUG: Token exchange failed: {error_detail}")
             self.error_message = f"APIエラー: {error_detail}"
         except Exception as e:
-            logger.error(f"Registration failed: {str(e)}", exc_info=True)
+            logger.error(f"DEBUG: Registration failed: {str(e)}", exc_info=True)
             self.error_message = f"登録エラー: {str(e)}"
         finally:
-            logger.info("=== manual_register_account completed ===")
+            logger.info("DEBUG: === manual_register_account completed ===")
             self.processing = False
             yield
     
