@@ -40,27 +40,12 @@ def auth_page() -> rx.Component:
                     rx.vstack(
                         rx.heading("ステップ2: アカウント名を入力", size="6"),
                         rx.text("認証後、アカウント名を入力してください（任意）"),
-                        rx.script(
-                            """
-                            setTimeout(function() {
-                                const params = new URLSearchParams(window.location.search);
-                                const code = params.get('code');
-                                if (code) {
-                                    const input = document.querySelector('input[placeholder*="認証コード"]');
-                                    if (input) {
-                                        input.value = code;
-                                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                                    }
-                                }
-                            }, 300);
-                            """
-                        ),
+
                         rx.input(
-                            placeholder="認証コード（自動入力）",
+                            placeholder="認証コードを貼り付け",
                             value=AuthState.auth_code,
                             on_change=AuthState.set_auth_code,
                             size="3",
-                            read_only=True,
                         ),
                         rx.input(
                             placeholder="Threads User IDを入力",
@@ -80,6 +65,9 @@ def auth_page() -> rx.Component:
                             size="3",
                             color_scheme="green",
                         ),
+                        rx.text(f"Debug: auth_code={AuthState.auth_code}", size="1", color="gray"),
+                        rx.text(f"Debug: user_id={AuthState.user_id}", size="1", color="gray"),
+                        rx.text(f"Debug: account_name={AuthState.account_name}", size="1", color="gray"),
                         spacing="4",
                     ),
                     width="100%",

@@ -91,12 +91,18 @@ class AuthState(rx.State):
         from datetime import datetime, timedelta
         
         logger = logging.getLogger(__name__)
+        logger.info("=== manual_register_account called ===")
+        logger.info(f"auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
+        logger.info(f"user_id: {self.user_id}")
+        logger.info(f"account_name: {self.account_name}")
         
         if not self.auth_code:
+            logger.error("No auth_code provided")
             self.error_message = "認証コードがありません"
             yield
             return
         
+        logger.info("Starting token exchange...")
         self.processing = True
         yield
         
@@ -116,34 +122,43 @@ class AuthState(rx.State):
         }
         
         try:
+            logger.info(f"Requesting token from: {url}")
             response = requests.post(url, data=data)
+            logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
             result = response.json()
+            logger.info(f"Token response: {result}")
             
             access_token = result.get("access_token", "")
             threads_user_id = result.get("user_id", "")
             
             if not threads_user_id:
+                logger.error("No user_id in response")
                 self.error_message = "User IDを取得できませんでした"
                 self.processing = False
                 yield
                 return
             
             logger.info(f"Token obtained for user_id: {threads_user_id}")
+            logger.info(f"Access token length: {len(access_token)}")
             
             # アカウント名が空の場合はUser IDを使用
             account_name = self.account_name if self.account_name else f"Account_{threads_user_id[:8]}"
+            logger.info(f"Account name: {account_name}")
             
             # アカウント登録
             db = next(get_db())
             try:
+                logger.info("Checking for existing account...")
                 existing = db.query(Account).filter_by(threads_user_id=threads_user_id).first()
                 if existing:
+                    logger.warning(f"Account already exists: {existing.name}")
                     self.error_message = f"アカウントは既に登録済みです: {existing.name}"
                     self.processing = False
                     yield
                     return
                 
+                logger.info("Creating account...")
                 AccountService.create_account(
                     db=db,
                     name=account_name,
@@ -151,7 +166,7 @@ class AuthState(rx.State):
                     access_token=access_token,
                     token_expires_at=datetime.now() + timedelta(days=60)
                 )
-                logger.info(f"Account created: {account_name}")
+                logger.info(f"Account created successfully: {account_name}")
                 self.success_message = f"アカウント '{account_name}' を追加しました！"
                 self.error_message = ""
                 
@@ -169,6 +184,7 @@ class AuthState(rx.State):
             logger.error(f"Registration failed: {str(e)}", exc_info=True)
             self.error_message = f"登録エラー: {str(e)}"
         finally:
+            logger.info("=== manual_register_account completed ===")
             self.processing = False
             yield
     
