@@ -63,22 +63,32 @@ def auth_page() -> rx.Component:
                             on_click=AuthState.manual_register_account,
                             size="3",
                             color_scheme="green",
+                            id="add-account-btn",
                         ),
+                        rx.text(f"Debug: auth_code={AuthState.auth_code}", size="1", color="gray"),
+                        rx.text(f"Debug: user_id={AuthState.user_id}", size="1", color="gray"),
+                        rx.text(f"Debug: account_name={AuthState.account_name}", size="1", color="gray"),
+                        rx.text(f"Debug: processing={AuthState.processing}", size="1", color="gray"),
+                        rx.text(f"Debug: log={AuthState.debug_log}", size="1", color="blue"),
                         rx.script(
                             """
                             console.log('DEBUG: Auth page loaded');
-                            const button = document.querySelector('button[color-scheme="green"]');
-                            if (button) {
-                                button.addEventListener('click', function() {
-                                    console.log('DEBUG: Button clicked!');
-                                });
-                            }
+                            setTimeout(function() {
+                                const button = document.getElementById('add-account-btn');
+                                console.log('DEBUG: Button element:', button);
+                                if (button) {
+                                    const originalClick = button.onclick;
+                                    button.addEventListener('click', function(e) {
+                                        console.log('DEBUG: Button clicked!', e);
+                                        console.log('DEBUG: Button onclick:', originalClick);
+                                    }, true);
+                                    console.log('DEBUG: Event listener attached');
+                                } else {
+                                    console.error('DEBUG: Button not found!');
+                                }
+                            }, 1000);
                             """
                         ),
-                        rx.text(f"Browser Debug: auth_code={AuthState.auth_code}", size="1", color="gray"),
-                        rx.text(f"Browser Debug: user_id={AuthState.user_id}", size="1", color="gray"),
-                        rx.text(f"Browser Debug: account_name={AuthState.account_name}", size="1", color="gray"),
-                        rx.text(f"Browser Debug: processing={AuthState.processing}", size="1", color="gray"),
                         spacing="4",
                     ),
                     width="100%",

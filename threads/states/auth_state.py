@@ -11,6 +11,7 @@ class AuthState(rx.State):
     error_message: str = ""
     success_message: str = ""
     processing: bool = False
+    debug_log: str = "Initialized"
     
     def on_load(self):
         """ページロード時にURLパラメータからcodeを取得"""
@@ -84,7 +85,9 @@ class AuthState(rx.State):
     
     def set_auth_code(self, code: str):
         """認証コードを設定"""
+        print(f"DEBUG: set_auth_code called with: {code[:20] if code else 'None'}", flush=True)
         self.auth_code = code
+        self.debug_log = f"auth_code set: {code[:20] if code else 'None'}"
     
     account_name: str = ""
     
