@@ -18,9 +18,11 @@ class AuthState(rx.State):
         logger = logging.getLogger(__name__)
         
         code = self.router.page.params.get("code", "")
+        print(f"DEBUG: on_load called, code from URL: {code[:20] if code else 'None'}")
         logger.info(f"DEBUG: on_load called, code from URL: {code[:20] if code else 'None'}")
         if code:
             self.auth_code = code
+            print(f"DEBUG: auth_code set to: {self.auth_code[:20]}")
             logger.info(f"DEBUG: auth_code set to: {self.auth_code[:20]}")
     
     @rx.var
@@ -102,17 +104,23 @@ class AuthState(rx.State):
         from datetime import datetime, timedelta
         
         logger = logging.getLogger(__name__)
+        print("DEBUG: === manual_register_account called ===")
+        print(f"DEBUG: auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
+        print(f"DEBUG: user_id: {self.user_id}")
+        print(f"DEBUG: account_name: {self.account_name}")
         logger.info("DEBUG: === manual_register_account called ===")
         logger.info(f"DEBUG: auth_code: {self.auth_code[:20] if self.auth_code else 'None'}")
         logger.info(f"DEBUG: user_id: {self.user_id}")
         logger.info(f"DEBUG: account_name: {self.account_name}")
         
         if not self.auth_code:
+            print("DEBUG: No auth_code provided")
             logger.error("DEBUG: No auth_code provided")
             self.error_message = "認証コードがありません"
             yield
             return
         
+        print("DEBUG: Starting token exchange...")
         logger.info("DEBUG: Starting token exchange...")
         self.processing = True
         yield
@@ -133,12 +141,16 @@ class AuthState(rx.State):
         }
         
         try:
+            print(f"DEBUG: Requesting token from: {url}")
+            print(f"DEBUG: Request data: client_id={app_id}, redirect_uri={redirect_uri}, code={self.auth_code[:20]}...")
             logger.info(f"DEBUG: Requesting token from: {url}")
             logger.info(f"DEBUG: Request data: client_id={app_id}, redirect_uri={redirect_uri}, code={self.auth_code[:20]}...")
             response = requests.post(url, data=data)
+            print(f"DEBUG: Response status: {response.status_code}")
             logger.info(f"DEBUG: Response status: {response.status_code}")
             response.raise_for_status()
             result = response.json()
+            print(f"DEBUG: Token response: {result}")
             logger.info(f"DEBUG: Token response: {result}")
             
             access_token = result.get("access_token", "")
@@ -190,12 +202,15 @@ class AuthState(rx.State):
                 
         except requests.exceptions.HTTPError as e:
             error_detail = e.response.json() if e.response else str(e)
+            print(f"DEBUG: Token exchange failed: {error_detail}")
             logger.error(f"DEBUG: Token exchange failed: {error_detail}")
             self.error_message = f"APIエラー: {error_detail}"
         except Exception as e:
+            print(f"DEBUG: Registration failed: {str(e)}")
             logger.error(f"DEBUG: Registration failed: {str(e)}", exc_info=True)
             self.error_message = f"登録エラー: {str(e)}"
         finally:
+            print("DEBUG: === manual_register_account completed ===")
             logger.info("DEBUG: === manual_register_account completed ===")
             self.processing = False
             yield

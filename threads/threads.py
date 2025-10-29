@@ -1,4 +1,6 @@
 import reflex as rx
+import logging
+import sys
 from .pages import (
     dashboard_page,
     accounts_page,
@@ -10,6 +12,13 @@ from .pages import (
     auth_callback_page,
 )
 from .scheduler import start_scheduler
+
+# ログ設定
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 app = rx.App()
 app.add_page(dashboard_page, route="/")
