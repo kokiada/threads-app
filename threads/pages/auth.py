@@ -15,7 +15,7 @@ def auth_page() -> rx.Component:
                         rx.text("以下のリンクから認証してください"),
                         rx.link(
                             rx.button("Threadsで認証", size="3", color_scheme="blue"),
-                            href=f"https://threads.net/oauth/authorize?client_id={rx.Var.create(lambda: __import__('os').getenv('THREADS_APP_ID'))}&redirect_uri={rx.Var.create(lambda: __import__('os').getenv('BASE_URL', 'http://localhost:3000'))}/auth/callback&scope=threads_basic,threads_content_publish&response_type=code",
+                            href=AuthState.auth_url,
                             is_external=True,
                         ),
                         spacing="3",

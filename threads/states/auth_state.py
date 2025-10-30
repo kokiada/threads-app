@@ -10,6 +10,12 @@ class AuthState(rx.State):
     success_message: str = ""
     processing: bool = False
     
+    @rx.var
+    def auth_url(self) -> str:
+        app_id = os.getenv("THREADS_APP_ID", "")
+        base_url = os.getenv("BASE_URL", "http://localhost:3000")
+        return f"https://threads.net/oauth/authorize?client_id={app_id}&redirect_uri={base_url}/auth/callback&scope=threads_basic,threads_content_publish&response_type=code"
+    
     def on_load(self):
         code = self.router.page.params.get("code", "")
         if code:
