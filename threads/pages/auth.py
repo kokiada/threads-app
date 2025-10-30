@@ -7,133 +7,62 @@ def auth_page() -> rx.Component:
         sidebar(),
         rx.box(
             rx.vstack(
-                rx.heading("Threads API 認証", size="8"),
+                rx.heading("アカウント追加", size="8"),
                 
                 rx.card(
                     rx.vstack(
-                        rx.heading("ステップ1: 認証URLを開く", size="6"),
-                        rx.text("認証を開始するには、以下のリンクをクリックしてください"),
-                        rx.vstack(
-                            rx.text("認証リンク:", weight="bold"),
-                            rx.cond(
-                                AuthState.computed_auth_url != "",
-                                rx.link(
-                                    rx.button(
-                                        "Threadsで認証する",
-                                        size="3",
-                                        color_scheme="blue",
-                                    ),
-                                    href=AuthState.computed_auth_url,
-                                    is_external=True,
-                                ),
-                                rx.text("URLを生成中...", color="gray"),
-                            ),
-                            rx.text("※ 新しいタブで開きます", size="2", color="gray"),
+                        rx.heading("ステップ1: Threads認証", size="6"),
+                        rx.text("以下のリンクから認証してください"),
+                        rx.link(
+                            rx.button("Threadsで認証", size="3", color_scheme="blue"),
+                            href=f"https://threads.net/oauth/authorize?client_id={rx.Var.create(lambda: __import__('os').getenv('THREADS_APP_ID'))}&redirect_uri={rx.Var.create(lambda: __import__('os').getenv('BASE_URL', 'http://localhost:3000'))}/auth/callback&scope=threads_basic,threads_content_publish&response_type=code",
+                            is_external=True,
                         ),
-                        spacing="4",
+                        spacing="3",
                     ),
                     width="100%",
                 ),
                 
                 rx.card(
                     rx.vstack(
-                        rx.heading("ステップ2: アカウント名を入力", size="6"),
-                        rx.text("認証後、アカウント名を入力してください（任意）"),
-
+                        rx.heading("ステップ2: 認証コード入力", size="6"),
                         rx.input(
-                            placeholder="認証コードを貼り付け",
+                            placeholder="認証コード",
                             value=AuthState.auth_code,
                             on_change=AuthState.set_auth_code,
                             size="3",
                         ),
                         rx.input(
-                            placeholder="Threads User IDを入力",
-                            value=AuthState.user_id,
-                            on_change=AuthState.set_user_id,
-                            size="3",
-                        ),
-                        rx.input(
-                            placeholder="アカウント名（例: メインアカウント）",
+                            placeholder="アカウント名（任意）",
                             value=AuthState.account_name,
                             on_change=AuthState.set_account_name,
                             size="3",
                         ),
                         rx.button(
-                            "アカウントを追加",
-                            on_click=AuthState.manual_register_account,
+                            "追加",
+                            on_click=AuthState.add_account,
                             size="3",
                             color_scheme="green",
-                            id="add-account-btn",
+                            loading=AuthState.processing,
                         ),
-                        rx.text(f"Debug: auth_code={AuthState.auth_code}", size="1", color="gray"),
-                        rx.text(f"Debug: user_id={AuthState.user_id}", size="1", color="gray"),
-                        rx.text(f"Debug: account_name={AuthState.account_name}", size="1", color="gray"),
-                        rx.text(f"Debug: processing={AuthState.processing}", size="1", color="gray"),
-                        rx.text(f"Debug: log={AuthState.debug_log}", size="1", color="blue"),
-                        rx.script(
-                            """
-                            console.log('DEBUG: Auth page loaded');
-                            setTimeout(function() {
-                                const button = document.getElementById('add-account-btn');
-                                console.log('DEBUG: Button element:', button);
-                                if (button) {
-                                    const originalClick = button.onclick;
-                                    button.addEventListener('click', function(e) {
-                                        console.log('DEBUG: Button clicked!', e);
-                                        console.log('DEBUG: Button onclick:', originalClick);
-                                    }, true);
-                                    console.log('DEBUG: Event listener attached');
-                                } else {
-                                    console.error('DEBUG: Button not found!');
-                                }
-                            }, 1000);
-                            """
-                        ),
-                        spacing="4",
+                        spacing="3",
                     ),
                     width="100%",
                 ),
                 
                 rx.cond(
-                    AuthState.processing,
-                    rx.card(
-                        rx.vstack(
-                            rx.spinner(size="3"),
-                            rx.text("認証処理中...", size="4", weight="bold"),
-                            spacing="3",
-                            align="center",
-                            padding="2rem",
-                        ),
-                        width="100%",
-                    ),
-                    rx.cond(
-                        AuthState.success_message != "",
-                        rx.callout(
-                            AuthState.success_message,
-                            color_scheme="green",
-                            size="3",
-                        ),
-                    ),
+                    AuthState.error_message != "",
+                    rx.callout(AuthState.error_message, color_scheme="red"),
                 ),
                 
                 rx.cond(
-                    AuthState.error_message != "",
-                    rx.callout(
-                        AuthState.error_message,
-                        color_scheme="red",
-                    ),
+                    AuthState.success_message != "",
+                    rx.callout(AuthState.success_message, color_scheme="green"),
                 ),
-                
-
-                
-
                 
                 spacing="6",
                 padding="2rem",
-                align="start",
-                on_mount=AuthState.on_load,
             ),
             margin_left="250px",
-            width="100%",
         ),
     )
