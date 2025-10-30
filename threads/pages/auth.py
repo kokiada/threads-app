@@ -62,6 +62,7 @@ def auth_page() -> rx.Component:
                 
                 spacing="6",
                 padding="2rem",
+                on_mount=AuthState.on_load,
             ),
             margin_left="250px",
         ),

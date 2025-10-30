@@ -10,6 +10,11 @@ class AuthState(rx.State):
     success_message: str = ""
     processing: bool = False
     
+    def on_load(self):
+        code = self.router.page.params.get("code", "")
+        if code:
+            self.auth_code = code
+    
     def set_auth_code(self, code: str):
         self.auth_code = code
     
