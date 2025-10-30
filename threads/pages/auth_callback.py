@@ -10,7 +10,8 @@ def auth_callback_page() -> rx.Component:
                 const params = new URLSearchParams(window.location.search);
                 const code = params.get('code');
                 if (code) {
-                    window.location.href = '/auth?code=' + encodeURIComponent(code);
+                    sessionStorage.setItem('threads_auth_code', code);
+                    window.location.href = '/auth';
                 } else {
                     window.location.href = '/auth';
                 }

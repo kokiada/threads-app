@@ -17,7 +17,9 @@ class AuthState(rx.State):
         return f"https://threads.net/oauth/authorize?client_id={app_id}&redirect_uri={base_url}/auth/callback&scope=threads_basic,threads_content_publish&response_type=code"
     
     def on_load(self):
-        code = self.router.page.params.get("code", "")
+        pass
+    
+    def load_auth_code_from_storage(self, code: str):
         if code:
             self.auth_code = code
     
