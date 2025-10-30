@@ -1,6 +1,8 @@
 import reflex as rx
 import logging
 import sys
+import signal
+import atexit
 from .pages import (
     dashboard_page,
     accounts_page,
@@ -19,6 +21,20 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
+
+logger = logging.getLogger(__name__)
+
+def cleanup():
+    logger.info("Cleaning up resources...")
+
+def signal_handler(signum, frame):
+    logger.info(f"Received signal {signum}, shutting down gracefully...")
+    cleanup()
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+atexit.register(cleanup)
 
 app = rx.App()
 app.add_page(dashboard_page, route="/")

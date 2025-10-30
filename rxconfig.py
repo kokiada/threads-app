@@ -14,6 +14,8 @@ config = rx.Config(
     deploy_url=base_url if is_prod else None,
     timeout=120,
     backend_transports=["websocket", "polling"],
+    gunicorn_worker_class="uvicorn.workers.UvicornWorker",
+    gunicorn_workers=1,
     plugins=[
         rx.plugins.SitemapPlugin(),
         rx.plugins.TailwindV4Plugin(),

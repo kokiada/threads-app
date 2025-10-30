@@ -5,6 +5,8 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /ping
+    autoDeploy: true
+    preDeployCommand: "echo 'Pre-deploy cleanup'"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
