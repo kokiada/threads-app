@@ -11,7 +11,6 @@ config = rx.Config(
     backend_port=port,
     backend_host="0.0.0.0",
     api_url=base_url,
-    deploy_url=base_url if is_prod else None,
     timeout=120,
     backend_transports=["websocket", "polling"],
     gunicorn_worker_class="uvicorn.workers.UvicornWorker",
