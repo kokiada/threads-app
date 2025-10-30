@@ -38,12 +38,15 @@ def auth_page() -> rx.Component:
                             on_change=AuthState.set_account_name,
                             size="3",
                         ),
-                        rx.button(
-                            "追加",
-                            on_click=AuthState.add_account,
-                            size="3",
-                            color_scheme="green",
-                            loading=AuthState.processing,
+                        rx.form(
+                            rx.button(
+                                "追加",
+                                type="submit",
+                                size="3",
+                                color_scheme="green",
+                                loading=AuthState.processing,
+                            ),
+                            on_submit=AuthState.add_account,
                         ),
                         spacing="3",
                     ),

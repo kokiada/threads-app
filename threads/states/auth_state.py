@@ -38,7 +38,6 @@ class AuthState(rx.State):
         self.processing = True
         self.error_message = ""
         self.success_message = ""
-        yield
         
         try:
             app_id = os.getenv("THREADS_APP_ID")
@@ -65,7 +64,6 @@ class AuthState(rx.State):
             if not access_token or not user_id:
                 self.error_message = "トークン取得に失敗しました"
                 self.processing = False
-                yield
                 return
             
             # アカウント登録
@@ -89,4 +87,3 @@ class AuthState(rx.State):
             self.error_message = f"エラー: {str(e)}"
         finally:
             self.processing = False
-            yield
