@@ -63,25 +63,8 @@ def auth_page() -> rx.Component:
                     rx.callout(AuthState.success_message, color_scheme="green"),
                 ),
                 
-                rx.script(
-                    f"""
-                    setTimeout(() => {{
-                        const code = sessionStorage.getItem('threads_auth_code');
-                        if (code) {{
-                            sessionStorage.removeItem('threads_auth_code');
-                            const input = document.querySelector('input[placeholder="認証コード"]');
-                            if (input) {{
-                                input.value = code;
-                                input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                            }}
-                        }}
-                    }}, 100);
-                    """
-                ),
-                
                 spacing="6",
                 padding="2rem",
-                on_mount=AuthState.on_load,
             ),
             margin_left="250px",
         ),
