@@ -23,6 +23,8 @@ services:
       - key: BASE_URL
         sync: false
       - key: PORT
+        value: 3000
+      - key: BACKEND_PORT
         value: 8000
 
 databases:
