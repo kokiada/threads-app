@@ -9,11 +9,6 @@ def auth_page() -> rx.Component:
             rx.vstack(
                 rx.heading("アカウント追加", size="8"),
                 
-                rx.box(
-                    rx.text(f"Debug: auth_code = {AuthState.auth_code}", size="1", color="gray"),
-                    rx.text(f"Debug: account_name = {AuthState.account_name}", size="1", color="gray"),
-                ),
-                
                 rx.card(
                     rx.vstack(
                         rx.heading("ステップ1: Threads認証", size="6"),
