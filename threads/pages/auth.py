@@ -9,6 +9,11 @@ def auth_page() -> rx.Component:
             rx.vstack(
                 rx.heading("アカウント追加", size="8"),
                 
+                rx.box(
+                    rx.text(f"Debug: auth_code = {AuthState.auth_code}", size="1", color="gray"),
+                    rx.text(f"Debug: account_name = {AuthState.account_name}", size="1", color="gray"),
+                ),
+                
                 rx.card(
                     rx.vstack(
                         rx.heading("ステップ1: Threads認証", size="6"),
@@ -70,23 +75,7 @@ def auth_page() -> rx.Component:
                 
                 spacing="6",
                 padding="2rem",
-            ),
-            rx.script(
-                """
-                setTimeout(function() {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const code = urlParams.get('code');
-                    if (code) {
-                        const cleanCode = code.replace('#_', '');
-                        const input = document.getElementById('code_input');
-                        if (input) {
-                            input.value = cleanCode;
-                            const event = new Event('change', { bubbles: true });
-                            input.dispatchEvent(event);
-                        }
-                    }
-                }, 500);
-                """
+                on_mount=AuthState.on_load,
             ),
             margin_left="250px",
         ),
