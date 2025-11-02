@@ -17,10 +17,17 @@ class ThreadsAPIClient:
         params["access_token"] = self.access_token
         
         logger.info(f"API Request: {method} {endpoint}")
+        logger.info(f"Request data: {data}")
         
         for attempt in range(retries):
             try:
-                response = self.session.request(method, url, params=params, json=data)
+                if method == "POST":
+                    response = self.session.post(url, params=params, data=data)
+                else:
+                    response = self.session.request(method, url, params=params)
+                
+                logger.info(f"Response status: {response.status_code}")
+                logger.info(f"Response body: {response.text}")
                 
                 if response.status_code == 429:
                     wait_time = 2 ** attempt
@@ -31,6 +38,9 @@ class ThreadsAPIClient:
                 if response.status_code == 401:
                     logger.error("Access token expired")
                     raise TokenExpiredError("Access token expired")
+                
+                if response.status_code >= 400:
+                    logger.error(f"API Error: {response.text}")
                 
                 response.raise_for_status()
                 logger.info(f"API Request successful: {endpoint}")
