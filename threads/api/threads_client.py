@@ -14,17 +14,20 @@ class ThreadsAPIClient:
     def _request(self, method: str, endpoint: str, params: Dict = None, data: Dict = None, retries: int = 3) -> Dict:
         url = f"{self.BASE_URL}/{endpoint}"
         params = params or {}
-        params["access_token"] = self.access_token
+        data = data or {}
         
-        logger.info(f"API Request: {method} {endpoint}")
+        # access_tokenをdataに含める（POST）またはparams（GET）
+        if method == "POST":
+            data["access_token"] = self.access_token
+        else:
+            params["access_token"] = self.access_token
+        
+        logger.info(f"API Request: {method} {url}")
         logger.info(f"Request data: {data}")
         
         for attempt in range(retries):
             try:
-                if method == "POST":
-                    response = self.session.post(url, params=params, data=data)
-                else:
-                    response = self.session.request(method, url, params=params)
+                response = self.session.request(method, url, params=params, data=data)
                 
                 logger.info(f"Response status: {response.status_code}")
                 logger.info(f"Response body: {response.text}")
