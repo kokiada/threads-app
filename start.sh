@@ -20,4 +20,8 @@ python -c "from threads.models import init_db; init_db(); print('Database initia
 echo "Starting Reflex app..."
 echo "Frontend port: $FRONT_PORT"
 echo "Backend port: $BACK_PORT"
+
+# バックグラウンドでポート確認
+(sleep 10 && echo "=== Port Check After 10s ===" && lsof -i :$FRONT_PORT && lsof -i :$BACK_PORT) &
+
 exec reflex run --env prod --loglevel info --backend-host 0.0.0.0 --backend-port $BACK_PORT --frontend-port $FRONT_PORT
