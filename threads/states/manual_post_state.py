@@ -95,6 +95,9 @@ class ManualPostState(BaseState):
             self.selected_account_ids.append(account_id)
     
     async def post_manual(self):
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if not self.selected_account_ids or not self.post_text:
             self.result_message = "アカウントと投稿内容を選択してください"
             return
@@ -103,25 +106,39 @@ class ManualPostState(BaseState):
         self.result_message = ""
         yield
         
-        with self.get_db() as db:
-            accounts = [AccountService.get_account(db, aid) for aid in self.selected_account_ids]
-            
-            media_type = MediaType[self.media_type]
-            urls = [u.strip() for u in self.media_urls.split(",") if u.strip()] if self.media_urls else None
-            
-            from ..models.post import Post
-            temp_post = Post(
-                group_id=1,
-                media_type=media_type,
-                text=self.post_text,
-                media_urls=urls
-            )
-            
-            results = await PostingService.post_bulk(db, accounts, temp_post)
-            success_count = sum(1 for r in results if r.get("success"))
-            self.result_message = f"投稿完了: {success_count}/{len(accounts)}件成功"
-        
-        self.posting = False
+        try:
+            with self.get_db() as db:
+                accounts = [AccountService.get_account(db, aid) for aid in self.selected_account_ids]
+                logger.info(f"投稿対象アカウント: {[a.name for a in accounts]}")
+                
+                media_type = MediaType[self.media_type]
+                urls = [u.strip() for u in self.media_urls.split(",") if u.strip()] if self.media_urls else None
+                
+                from ..models.post import Post
+                temp_post = Post(
+                    group_id=1,
+                    media_type=media_type,
+                    text=self.post_text,
+                    media_urls=urls
+                )
+                logger.info(f"投稿内容: {self.post_text[:50]}...")
+                
+                results = await PostingService.post_bulk(db, accounts, temp_post)
+                logger.info(f"投稿結果: {results}")
+                
+                success_count = sum(1 for r in results if r.get("success"))
+                failed_results = [r for r in results if not r.get("success")]
+                
+                if failed_results:
+                    errors = ", ".join([r.get("error", "Unknown") for r in failed_results])
+                    self.result_message = f"投稿完了: {success_count}/{len(accounts)}件成功. エラー: {errors}"
+                else:
+                    self.result_message = f"投稿完了: {success_count}/{len(accounts)}件成功"
+        except Exception as e:
+            logger.error(f"投稿エラー: {str(e)}", exc_info=True)
+            self.result_message = f"エラー: {str(e)}"
+        finally:
+            self.posting = False
     
     async def post_from_template(self):
         if not self.selected_account_ids or not self.selected_post_id:
