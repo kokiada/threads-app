@@ -4,21 +4,6 @@ from ..states.auth_state import AuthState
 
 def auth_page() -> rx.Component:
     return rx.box(
-        rx.script("""
-            console.log('🚫 Blocking WebSocket');
-            window.WebSocket = function() {
-                console.log('WebSocket blocked');
-                return {
-                    readyState: 3,
-                    close: function() {},
-                    send: function() {},
-                    addEventListener: function() {},
-                    removeEventListener: function() {},
-                    onerror: null,
-                    onclose: null
-                };
-            };
-        """),
         sidebar(),
         rx.box(
             rx.vstack(
@@ -58,12 +43,15 @@ def auth_page() -> rx.Component:
                             on_change=AuthState.set_account_name,
                             size="3",
                         ),
-                        rx.button(
-                            "追加",
-                            size="3",
-                            color_scheme="green",
-                            loading=AuthState.processing,
-                            on_click=AuthState.add_account,
+                        rx.form(
+                            rx.button(
+                                "追加",
+                                type="submit",
+                                size="3",
+                                color_scheme="green",
+                                loading=AuthState.processing,
+                            ),
+                            on_submit=AuthState.add_account,
                         ),
                         spacing="3",
                     ),
