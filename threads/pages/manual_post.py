@@ -20,7 +20,7 @@ def manual_post_page() -> rx.Component:
                                             ManualPostState.accounts,
                                             lambda a: rx.checkbox(
                                                 a["name"],
-                                                on_change=lambda aid=a["id"]: ManualPostState.toggle_account(aid),
+                                                on_change=ManualPostState.toggle_account(a["id"]),
                                                 size="3",
                                             ),
                                         ),

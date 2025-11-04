@@ -89,10 +89,12 @@ class ManualPostState(BaseState):
         self.result_message = f"{len(self.uploaded_files)}件のファイルをアップロードしました"
     
     def toggle_account(self, account_id: int):
-        if account_id in self.selected_account_ids:
-            self.selected_account_ids.remove(account_id)
-        else:
-            self.selected_account_ids.append(account_id)
+        def handler(checked: bool):
+            if checked and account_id not in self.selected_account_ids:
+                self.selected_account_ids.append(account_id)
+            elif not checked and account_id in self.selected_account_ids:
+                self.selected_account_ids.remove(account_id)
+        return handler
     
     async def post_manual(self):
         import logging
