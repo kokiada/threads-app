@@ -88,17 +88,23 @@ class ManualPostState(BaseState):
         self.uploading = False
         self.result_message = f"{len(self.uploaded_files)}件のファイルをアップロードしました"
     
-    def toggle_account(self, account_id: int):
-        def handler(checked: bool):
-            if checked and account_id not in self.selected_account_ids:
-                self.selected_account_ids.append(account_id)
-            elif not checked and account_id in self.selected_account_ids:
-                self.selected_account_ids.remove(account_id)
-        return handler
+    def set_account_selection(self, account_id: int, checked: bool):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"set_account_selection: account_id={account_id}, checked={checked}")
+        
+        if checked and account_id not in self.selected_account_ids:
+            self.selected_account_ids.append(account_id)
+            logger.info(f"Added account {account_id}. Current: {self.selected_account_ids}")
+        elif not checked and account_id in self.selected_account_ids:
+            self.selected_account_ids.remove(account_id)
+            logger.info(f"Removed account {account_id}. Current: {self.selected_account_ids}")
     
     async def post_manual(self):
         import logging
         logger = logging.getLogger(__name__)
+        
+        logger.info(f"post_manual called: selected_account_ids={self.selected_account_ids}, post_text={self.post_text[:50] if self.post_text else 'empty'}")
         
         if not self.selected_account_ids or not self.post_text:
             self.result_message = "アカウントと投稿内容を選択してください"

@@ -18,10 +18,13 @@ def manual_post_page() -> rx.Component:
                                     rx.vstack(
                                         rx.foreach(
                                             ManualPostState.accounts,
-                                            lambda a: rx.checkbox(
-                                                a["name"],
-                                                on_change=ManualPostState.toggle_account(a["id"]),
-                                                size="3",
+                                            lambda a: rx.hstack(
+                                                rx.checkbox(
+                                                    on_change=lambda checked, aid=a["id"]: ManualPostState.set_account_selection(aid, checked),
+                                                    size="3",
+                                                ),
+                                                rx.text(a["name"], size="3"),
+                                                spacing="2",
                                             ),
                                         ),
                                         spacing="3",
