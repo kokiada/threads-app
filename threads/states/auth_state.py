@@ -158,6 +158,8 @@ class AuthState(BaseState):
                     "code": self.auth_code
                 }
             )
+            logger.info(f"Response status: {short_token_response.status_code}")
+            logger.info(f"Response body: {short_token_response.text}")
             short_token_response.raise_for_status()
             short_result = short_token_response.json()
             
@@ -215,6 +217,10 @@ class AuthState(BaseState):
             finally:
                 db.close()
                 
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTPエラー: {str(e)}", exc_info=True)
+            error_detail = e.response.text if hasattr(e, 'response') else str(e)
+            self.error_message = f"認証エラー: {error_detail}"
         except Exception as e:
             logger.error(f"エラー: {str(e)}", exc_info=True)
             self.error_message = f"エラー: {str(e)}"

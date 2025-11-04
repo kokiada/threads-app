@@ -10,6 +10,10 @@ class AccountService:
     @staticmethod
     def create_account(db: Session, name: str, threads_user_id: str, access_token: str, 
                       token_expires_at: Optional[datetime] = None) -> Account:
+        existing = db.query(Account).filter(Account.threads_user_id == threads_user_id).first()
+        if existing:
+            raise ValidationError(f"アカウント '{existing.name}' は既に登録されています")
+        
         encrypted_token = encrypt_token(access_token)
         account = Account(
             name=name,
