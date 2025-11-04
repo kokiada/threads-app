@@ -132,30 +132,23 @@ class AuthState(BaseState):
         from ..services.account_service import AccountService
         
         logger = logging.getLogger(__name__)
-        logger.info("="*80)
-        logger.info("🟢 add_account METHOD CALLED")
-        logger.info(f"🟢 Current auth_code: {self.auth_code[:20] if self.auth_code else 'EMPTY'}...")
-        logger.info(f"🟢 Current account_name: {self.account_name}")
-        logger.info(f"🟢 Current processing: {self.processing}")
-        logger.info("="*80)
         
         if not self.auth_code:
             self.error_message = "認証コードを入力してください"
-            logger.warning("No auth code provided")
             return
         
         self.processing = True
         self.error_message = ""
         self.success_message = ""
-        logger.info("Starting token exchange...")
         
         try:
             app_id = os.getenv("THREADS_APP_ID")
             app_secret = os.getenv("THREADS_APP_SECRET")
             base_url = os.getenv("BASE_URL", "http://localhost:3000")
             
-            logger.info(f"Requesting token with redirect_uri: {base_url}/auth")
-            response = requests.post(
+            # ステップ1: 短期トークン取得
+            logger.info("Step 1: 短期トークン取得")
+            short_token_response = requests.post(
                 "https://graph.threads.net/oauth/access_token",
                 data={
                     "client_id": app_id,
@@ -165,40 +158,65 @@ class AuthState(BaseState):
                     "code": self.auth_code
                 }
             )
-            logger.info(f"Response status: {response.status_code}")
-            logger.info(f"Response body: {response.text}")
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Token exchange successful: {result}")
+            short_token_response.raise_for_status()
+            short_result = short_token_response.json()
             
-            access_token = result.get("access_token")
-            user_id = result.get("user_id")
+            short_token = short_result.get("access_token")
+            user_id = short_result.get("user_id")
             
-            if not access_token or not user_id:
-                self.error_message = "トークン取得に失敗しました"
+            if not short_token or not user_id:
+                self.error_message = "短期トークン取得に失敗しました"
                 self.processing = False
                 return
             
+            logger.info(f"短期トークン取得成功: user_id={user_id}")
+            
+            # ステップ2: 長期トークン取得
+            logger.info("Step 2: 長期トークン取得")
+            long_token_response = requests.get(
+                "https://graph.threads.net/access_token",
+                params={
+                    "grant_type": "th_exchange_token",
+                    "client_secret": app_secret,
+                    "access_token": short_token
+                }
+            )
+            long_token_response.raise_for_status()
+            long_result = long_token_response.json()
+            
+            long_token = long_result.get("access_token")
+            expires_in = long_result.get("expires_in", 5184000)  # デフォルト60日
+            
+            if not long_token:
+                self.error_message = "長期トークン取得に失敗しました"
+                self.processing = False
+                return
+            
+            logger.info(f"長期トークン取得成功: expires_in={expires_in}秒")
+            
+            # ステップ3: アカウント追加
+            logger.info("Step 3: アカウント追加")
             db = next(get_db())
             try:
                 name = self.account_name or f"Account_{user_id[:8]}"
+                expires_at = datetime.now() + timedelta(seconds=expires_in)
+                
                 AccountService.create_account(
                     db=db,
                     name=name,
                     threads_user_id=user_id,
-                    access_token=access_token,
-                    token_expires_at=datetime.now() + timedelta(days=60)
+                    access_token=long_token,
+                    token_expires_at=expires_at
                 )
                 self.success_message = f"アカウント '{name}' を追加しました"
-                logger.info(f"Account added successfully: {name}")
+                logger.info(f"アカウント追加成功: {name}")
                 self.auth_code = ""
                 self.account_name = ""
             finally:
                 db.close()
                 
         except Exception as e:
-            logger.error(f"Error in add_account: {str(e)}", exc_info=True)
+            logger.error(f"エラー: {str(e)}", exc_info=True)
             self.error_message = f"エラー: {str(e)}"
         finally:
             self.processing = False
-            logger.info("add_account completed")
