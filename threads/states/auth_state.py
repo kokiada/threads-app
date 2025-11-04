@@ -104,7 +104,7 @@ class AuthState(BaseState):
             logger.info(f"Token exchange response: {result}")
             
             access_token = result.get("access_token")
-            user_id = result.get("user_id")
+            user_id = str(result.get("user_id"))
             
             if access_token and user_id:
                 db = next(get_db())
@@ -164,7 +164,7 @@ class AuthState(BaseState):
             short_result = short_token_response.json()
             
             short_token = short_result.get("access_token")
-            user_id = short_result.get("user_id")
+            user_id = str(short_result.get("user_id"))
             
             if not short_token or not user_id:
                 self.error_message = "短期トークン取得に失敗しました"
