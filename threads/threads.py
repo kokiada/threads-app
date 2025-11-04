@@ -46,5 +46,12 @@ app.add_page(metrics_page, route="/metrics", title="メトリクス分析")
 app.add_page(auth_page, route="/auth", title="アカウント追加")
 app.add_page(auth_callback_page, route="/auth/callback", title="認証処理中")
 
+# 静的ファイル配信
+from fastapi.staticfiles import StaticFiles
+import os
+uploaded_files_dir = "uploaded_files"
+os.makedirs(uploaded_files_dir, exist_ok=True)
+app.api.mount("/uploaded_files", StaticFiles(directory=uploaded_files_dir), name="uploaded_files")
+
 # スケジューラー起動（デバッグ時は無効化）
 # start_scheduler()

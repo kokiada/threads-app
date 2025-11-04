@@ -6,7 +6,7 @@ from ..services.account_service import AccountService
 from ..services.post_group_service import PostGroupService
 from ..services.post_service import PostService
 from ..services.posting_service import PostingService
-from ..utils.cloudinary_uploader import upload_file
+
 from .base_state import BaseState
 
 class ManualPostState(BaseState):
@@ -64,26 +64,32 @@ class ManualPostState(BaseState):
         self.media_urls = value
     
     async def handle_upload(self, files: List[rx.UploadFile]):
-        """ファイルをCloudinaryにアップロード"""
+        import logging
+        import os
+        logger = logging.getLogger(__name__)
+        
         self.uploading = True
         self.uploaded_files = []
         
-        for file in files:
-            # ファイルを一時保存
-            upload_data = await file.read()
-            temp_path = f"/tmp/{file.filename}"
-            
-            with open(temp_path, "wb") as f:
-                f.write(upload_data)
-            
-            # Cloudinaryにアップロード
-            resource_type = "video" if self.media_type == "VIDEO" else "image"
-            url = upload_file(temp_path, resource_type)
-            
-            if url:
-                self.uploaded_files.append(url)
+        upload_dir = "uploaded_files"
+        os.makedirs(upload_dir, exist_ok=True)
         
-        # アップロードされたURLをmedia_urlsに設定
+        for file in files:
+            try:
+                upload_data = await file.read()
+                file_path = os.path.join(upload_dir, file.filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(upload_data)
+                
+                # 公開URLを生成（BASE_URLを使用）
+                base_url = os.getenv("BASE_URL", "http://localhost:3000")
+                public_url = f"{base_url}/{file_path}"
+                self.uploaded_files.append(public_url)
+                logger.info(f"File uploaded: {public_url}")
+            except Exception as e:
+                logger.error(f"Upload error: {str(e)}")
+        
         self.media_urls = ",".join(self.uploaded_files)
         self.uploading = False
         self.result_message = f"{len(self.uploaded_files)}件のファイルをアップロードしました"

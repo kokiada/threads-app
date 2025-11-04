@@ -73,7 +73,6 @@ def manual_post_page() -> rx.Component:
                                                         rx.button(
                                                             "ファイルを選択",
                                                             size="3",
-                                                            loading=ManualPostState.uploading,
                                                         ),
                                                         id="upload",
                                                         multiple=True,
