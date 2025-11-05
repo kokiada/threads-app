@@ -71,7 +71,8 @@ class ManualPostState(BaseState):
         self.uploading = True
         self.uploaded_files = []
         
-        upload_dir = "uploaded_files"
+        # assetsディレクトリに保存
+        upload_dir = "assets/uploaded"
         os.makedirs(upload_dir, exist_ok=True)
         
         for file in files:
@@ -82,9 +83,8 @@ class ManualPostState(BaseState):
                 with open(file_path, "wb") as f:
                     f.write(upload_data)
                 
-                # 公開URLを生成（BASE_URLを使用）
-                base_url = os.getenv("BASE_URL", "http://localhost:3000")
-                public_url = f"{base_url}/{file_path}"
+                # 公開URLを生成
+                public_url = f"/uploaded/{file.filename}"
                 self.uploaded_files.append(public_url)
                 logger.info(f"File uploaded: {public_url}")
             except Exception as e:

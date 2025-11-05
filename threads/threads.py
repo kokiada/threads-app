@@ -46,5 +46,9 @@ app.add_page(metrics_page, route="/metrics", title="メトリクス分析")
 app.add_page(auth_page, route="/auth", title="アカウント追加")
 app.add_page(auth_callback_page, route="/auth/callback", title="認証処理中")
 
+# アップロードファイル用ディレクトリ作成
+import os
+os.makedirs("uploaded_files", exist_ok=True)
+
 # スケジューラー起動（デバッグ時は無効化）
 # start_scheduler()
