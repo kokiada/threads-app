@@ -36,6 +36,10 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 atexit.register(cleanup)
 
+# アップロードファイル用ディレクトリ作成
+import os
+os.makedirs("uploaded_files", exist_ok=True)
+
 app = rx.App()
 app.add_page(dashboard_page, route="/", title="ダッシュボード")
 app.add_page(accounts_page, route="/accounts", title="アカウント管理")
@@ -46,9 +50,12 @@ app.add_page(metrics_page, route="/metrics", title="メトリクス分析")
 app.add_page(auth_page, route="/auth", title="アカウント追加")
 app.add_page(auth_callback_page, route="/auth/callback", title="認証処理中")
 
-# アップロードファイル用ディレクトリ作成
-import os
-os.makedirs("uploaded_files", exist_ok=True)
+# 静的ファイル配信
+try:
+    from fastapi.staticfiles import StaticFiles
+    app.api.mount("/uploaded_files", StaticFiles(directory="uploaded_files"), name="uploaded_files")
+except Exception as e:
+    logger.warning(f"Static files mount failed: {e}")
 
 # スケジューラー起動（デバッグ時は無効化）
 # start_scheduler()
