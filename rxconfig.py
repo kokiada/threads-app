@@ -22,14 +22,16 @@ if is_prod:
         ]
     )
 else:
+    # ngrok使用時は同じURLを使用
+    base_url_env = os.getenv("BASE_URL", "http://localhost:3000")
     config = rx.Config(
         app_name="threads",
         frontend_port=3000,
         backend_port=8000,
         backend_host="0.0.0.0",
-        api_url="http://localhost:8000",
+        api_url=base_url_env,
         timeout=600,
-        backend_transports=["polling", "websocket"],
+        backend_transports=["polling"],
         plugins=[
             rx.plugins.SitemapPlugin(),
             rx.plugins.TailwindV4Plugin(),
