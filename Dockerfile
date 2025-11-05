@@ -15,10 +15,9 @@ COPY . .
 
 RUN reflex init
 
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+RUN chmod +x /app/start.sh
 
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["/start.sh"]
+CMD ["/app/start.sh"]
