@@ -66,33 +66,42 @@ class ManualPostState(BaseState):
     async def handle_upload(self, files: List[rx.UploadFile]):
         import logging
         import os
+        import tempfile
+        from ..utils.cloudinary_uploader import upload_file
         logger = logging.getLogger(__name__)
         
         self.uploading = True
         self.uploaded_files = []
         
-        # assetsディレクトリに保存
-        upload_dir = "assets/uploaded"
-        os.makedirs(upload_dir, exist_ok=True)
-        
         for file in files:
             try:
                 upload_data = await file.read()
-                file_path = os.path.join(upload_dir, file.filename)
                 
-                with open(file_path, "wb") as f:
-                    f.write(upload_data)
+                # 一時ファイルに保存
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+                    tmp.write(upload_data)
+                    tmp_path = tmp.name
                 
-                # 公開URLを生成
-                public_url = f"/uploaded/{file.filename}"
-                self.uploaded_files.append(public_url)
-                logger.info(f"File uploaded: {public_url}")
+                # Cloudinaryにアップロード
+                public_url = upload_file(tmp_path)
+                
+                # 一時ファイルを削除
+                os.unlink(tmp_path)
+                
+                if public_url:
+                    self.uploaded_files.append(public_url)
+                    logger.info(f"File uploaded to Cloudinary: {public_url}")
+                else:
+                    logger.error(f"Failed to upload {file.filename}")
             except Exception as e:
                 logger.error(f"Upload error: {str(e)}")
         
         self.media_urls = ",".join(self.uploaded_files)
         self.uploading = False
-        self.result_message = f"{len(self.uploaded_files)}件のファイルをアップロードしました"
+        if self.uploaded_files:
+            self.result_message = f"{len(self.uploaded_files)}件のファイルをアップロードしました"
+        else:
+            self.result_message = "アップロードに失敗しました"
     
     def set_account_selection(self, account_id: int, checked: bool):
         import logging
